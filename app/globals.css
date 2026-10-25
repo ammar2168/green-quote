@@ -1,26 +1,70 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --color-ink: #14212e;
+  --color-muted: #56606b;
+  --color-subtle: #7d858e;
+  --color-canvas: #f8f6f1;
+  --color-surface: #fff;
+  --color-sunken: #f1eee6;
+  --color-line: #e6e1d5;
+  --color-line-strong: #d2ccbd;
+
+  --color-brand: #c2410c;
+  --color-brand-strong: #9a3412;
+  --color-brand-soft: #fff1e7;
+  --color-on-brand: #fff;
+
+  --color-sun: #f59e0b;
+  --color-panel: #1f3b57;
+  --color-panel-light: #3d6a93;
+
+  --color-danger: #b42318;
+  --color-danger-soft: #fdeceb;
+
+  --radius-card: 1rem;
+  --radius-control: 0.625rem;
+
+  --shadow-card: 0 1px 2px #14212e0d, 0 0 0 1px #14212e08;
+  --shadow-lift: 0 12px 28px -12px #14212e40, 0 2px 6px #14212e0f;
+
+  --animate-rise: rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  --animate-ken-burns: ken-burns 24s ease-in-out infinite alternate;
+
+  @keyframes rise {
+    0% {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes ken-burns {
+    0% {
+      transform: scale(1);
+    }
+    100% {
+      transform: scale(1.07) translate(-1%, 1%);
+    }
+  }
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise,
+  .animate-ken-burns {
+    animation: none;
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-canvas);
+  color: var(--color-ink);
 }
