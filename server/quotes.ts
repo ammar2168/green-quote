@@ -1,3 +1,6 @@
+import { and, desc, eq } from "drizzle-orm";
+import { z } from "zod";
+
 import { db } from "@/db";
 import { type Quote, quotes } from "@/db/schema";
 import { CURRENCY, fromCents } from "@/lib/money";
@@ -53,6 +56,35 @@ export async function createQuote(
     .insert(quotes)
     .values({ userId, ...request, ...result })
     .returning();
+
+  return quote;
+}
+
+/** The signed-in user's quotes, newest first. */
+export async function listQuotes(userId: string): Promise<Quote[]> {
+  return db
+    .select()
+    .from(quotes)
+    .where(eq(quotes.userId, userId))
+    .orderBy(desc(quotes.createdAt));
+}
+
+/**
+ * One of the user's own quotes, or undefined. Another user's quote is
+ * undefined too, so its id reveals nothing about whether it exists.
+ */
+export async function findQuote(
+  userId: string,
+  quoteId: string,
+): Promise<Quote | undefined> {
+  // Postgres rejects a malformed uuid with an error rather than no rows.
+  if (!z.uuid().safeParse(quoteId).success) return undefined;
+
+  const [quote] = await db
+    .select()
+    .from(quotes)
+    .where(and(eq(quotes.id, quoteId), eq(quotes.userId, userId)))
+    .limit(1);
 
   return quote;
 }

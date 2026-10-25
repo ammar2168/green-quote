@@ -19,6 +19,10 @@
   --color-panel: #1f3b57;
   --color-panel-light: #3d6a93;
 
+  /* The amortization chart's two series, checked for colour-blind contrast. */
+  --color-principal: #2f6fb0;
+  --color-interest: #c2410c;
+
   --color-danger: #b42318;
   --color-danger-soft: #fdeceb;
 

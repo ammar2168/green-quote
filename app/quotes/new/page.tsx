@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
-import { logout } from "@/app/actions/auth";
+import { AppHeader } from "@/components/app-header";
 import { QuoteForm } from "@/components/quote-form";
-import { SiteFooter, SiteHeader } from "@/components/site-chrome";
+import { SiteFooter } from "@/components/site-chrome";
 import { requireUser } from "@/lib/current-user";
 
 export const metadata: Metadata = {
@@ -14,14 +14,7 @@ export const metadata: Metadata = {
 export default function NewQuotePage() {
   return (
     <>
-      <SiteHeader
-        action={
-          // Reads the session cookie, so it streams in behind a boundary.
-          <Suspense fallback={<div className="h-9 w-40" />}>
-            <AccountMenu />
-          </Suspense>
-        }
-      />
+      <AppHeader current="new" />
 
       <main className="flex-1">
         <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:py-12">
@@ -50,53 +43,6 @@ async function PrefilledQuoteForm() {
 
   return (
     <QuoteForm defaults={{ fullName: user.fullName, email: user.email }} />
-  );
-}
-
-async function AccountMenu() {
-  const user = await requireUser();
-
-  return (
-    <>
-      <span
-        aria-hidden="true"
-        className="flex size-8 items-center justify-center rounded-full bg-panel text-sm font-semibold text-white"
-      >
-        {user.fullName.charAt(0).toUpperCase()}
-      </span>
-      <span className="hidden text-sm font-medium sm:inline">
-        {user.fullName}
-      </span>
-      <form action={logout}>
-        <button
-          type="submit"
-          aria-label="Sign out"
-          title="Sign out"
-          className="flex size-9 items-center justify-center rounded-control text-muted transition-colors hover:bg-sunken hover:text-ink"
-        >
-          <SignOutIcon />
-        </button>
-      </form>
-    </>
-  );
-}
-
-function SignOutIcon() {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="size-5"
-    >
-      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-      <path d="m16 17 5-5-5-5" />
-      <path d="M21 12H9" />
-    </svg>
   );
 }
 

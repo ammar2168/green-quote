@@ -5,18 +5,31 @@ import { LogoMark } from "./logo";
 
 const container = "mx-auto w-full max-w-6xl px-4 sm:px-6";
 
-/** `action` fills the right-hand side: a sign-in link, or a sign-out button. */
-export function SiteHeader({ action }: { action?: ReactNode }) {
+/**
+ * `nav` sits beside the logo; `action` fills the right-hand side: a sign-in
+ * link, or the account menu.
+ */
+export function SiteHeader({
+  nav,
+  action,
+}: {
+  nav?: ReactNode;
+  action?: ReactNode;
+}) {
   return (
     <header className="sticky top-0 z-30 border-b border-line/80 bg-canvas/85 backdrop-blur">
-      <div className={`${container} flex h-16 items-center gap-4`}>
+      <div className={`${container} flex h-16 items-center gap-2 sm:gap-4`}>
         <Link
           href="/"
           className="flex items-center gap-2 font-semibold tracking-tight text-ink"
         >
           <LogoMark className="size-7" />
-          <span className="text-lg">greenQuote</span>
+          {/* On a phone the nav needs the room, so the mark stands alone. */}
+          <span className={`text-lg ${nav ? "max-sm:sr-only" : ""}`}>
+            greenQuote
+          </span>
         </Link>
+        {nav}
         <div className="ml-auto flex items-center gap-2">{action}</div>
       </div>
     </header>

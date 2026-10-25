@@ -18,3 +18,15 @@ export function toCents(dollars: number): number {
 export function fromCents(cents: number): number {
   return cents / 100;
 }
+
+/** `123456` → `"$1,234.56"`, or `"$1,235"` with `wholeDollars`. */
+export function formatCents(
+  cents: number,
+  { wholeDollars = false }: { wholeDollars?: boolean } = {},
+): string {
+  return fromCents(cents).toLocaleString("en-US", {
+    style: "currency",
+    currency: CURRENCY,
+    ...(wholeDollars && { maximumFractionDigits: 0 }),
+  });
+}

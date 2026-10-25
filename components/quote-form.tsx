@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
 
 import { CURRENCY } from "@/lib/money";
 import {
@@ -16,15 +17,23 @@ import { primaryButton } from "./site-chrome";
  * Posts to `/api/quotes` with `fetch` rather than a Server Action, so the form
  * and any other client share the one JSON API. Inputs stay uncontrolled, and
  * since `onSubmit` (unlike a form `action`) does not reset the form, a failed
- * submit keeps everything that was typed.
+ * submit keeps everything that was typed. A saved quote opens on its own page,
+ * and the form is cleared behind it: Next.js keeps this page's state for when
+ * you come back, so "New quote" would otherwise reopen the last one.
  */
 export function QuoteForm({
   defaults,
 }: {
   defaults: { fullName: string; email: string };
 }) {
+  const router = useRouter();
   const [state, setState] = useState<QuoteFormState>({ status: "idle" });
-  const [pending, setPending] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  // Pending from the moment the quote is saved until its page has rendered,
+  // then idle again by itself — unlike a flag this component would have to
+  // remember to clear on a page it has already left.
+  const [navigating, startNavigation] = useTransition();
+  const pending = submitting || navigating;
 
   const errors = state.status === "invalid" ? state.errors : {};
   const message =
@@ -37,11 +46,23 @@ export function QuoteForm({
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    setPending(true);
-    setState(
-      await submitQuote(toQuoteRequestBody(new FormData(event.currentTarget))),
-    );
-    setPending(false);
+    // React clears `currentTarget` once the handler yields at the `await`.
+    const form = event.currentTarget;
+
+    setSubmitting(true);
+
+    const result = await submitQuote(toQuoteRequestBody(new FormData(form)));
+
+    setSubmitting(false);
+
+    if (result.status === "saved") {
+      form.reset();
+      setState({ status: "idle" });
+      startNavigation(() => router.push(`/quotes/${result.quote.id}`));
+      return;
+    }
+
+    setState(result);
   }
 
   return (
@@ -53,7 +74,6 @@ export function QuoteForm({
             {message}
           </p>
         )}
-        {state.status === "saved" && <SavedNotice state={state} />}
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">
@@ -123,21 +143,3 @@ export function QuoteForm({
   );
 }
 
-function SavedNotice({
-  state,
-}: {
-  state: Extract<QuoteFormState, { status: "saved" }>;
-}) {
-  const { derived, offers, currency } = state.quote;
-  const money = (amount: number) =>
-    amount.toLocaleString("en-US", { style: "currency", currency });
-  const cheapest = Math.min(...offers.map((offer) => offer.monthlyPayment));
-
-  return (
-    <p className="rounded-control border border-brand/20 bg-brand-soft px-3 py-2.5 text-sm text-ink">
-      <span className="font-semibold">Quote saved.</span> System price{" "}
-      {money(derived.systemPrice)}, risk band {derived.riskBand} at{" "}
-      {derived.apr}% APR — from {money(cheapest)} a month.
-    </p>
-  );
-}
