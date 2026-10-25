@@ -2,6 +2,7 @@ import { relations, sql } from "drizzle-orm";
 import {
   check,
   index,
+  integer,
   jsonb,
   numeric,
   pgEnum,
@@ -12,37 +13,20 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
+import { type QuoteOffer, riskBands } from "../lib/quote";
+
 /**
- * All money columns are USD, stored as `numeric` so the pricing maths stays
- * exact in the database. `mode: "number"` hands them back as plain JS numbers,
- * which is safe at these magnitudes and keeps the API responses unsurprising.
+ * Money columns are integer US cents, suffixed `_cents`, so stored amounts are
+ * exact and compare with `=` (see `lib/money.ts`). Measurements such as kWh
+ * are `numeric` with `mode: "number"`, which hands them back as plain JS
+ * numbers — safe at these magnitudes.
  */
 
 export const userRoles = ["user", "admin"] as const;
 export const userRoleEnum = pgEnum("user_role", userRoles);
 export type UserRole = (typeof userRoles)[number];
 
-export const riskBands = ["A", "B", "C"] as const;
 export const riskBandEnum = pgEnum("risk_band", riskBands);
-export type RiskBand = (typeof riskBands)[number];
-
-/** The three financing terms every quote is offered. */
-export const offerTermYears = [5, 10, 15] as const;
-export type OfferTermYears = (typeof offerTermYears)[number];
-
-/**
- * One installment offer, as returned by the pricing model. Stored inline on
- * the quote (see `quotes.offers`) rather than in a third table: a quote always
- * has exactly these three, they are derived values that never change once
- * computed, and nothing reads an offer without its quote.
- */
-export type QuoteOffer = {
-  termYears: OfferTermYears;
-  /** Annual percentage rate, as a percentage — `6.9` means 6.9%. */
-  apr: number;
-  principalUsed: number;
-  monthlyPayment: number;
-};
 
 export const users = pgTable(
   "users",
@@ -92,31 +76,24 @@ export const quotes = pgTable(
       scale: 2,
       mode: "number",
     }).notNull(),
-    /** Optional on the form; absent means 0, which keeps `principal` total. */
-    downPayment: numeric("down_payment", {
-      precision: 12,
-      scale: 2,
-      mode: "number",
-    })
-      .notNull()
-      .default(0),
+    /** Optional on the form; absent means 0, which finances the whole price. */
+    downPaymentCents: integer("down_payment_cents").notNull().default(0),
 
-    // --- Derived by the pricing model ---------------------------------
+    // --- Derived by the pricing model (lib/quote.ts) ------------------
+    // Saved rather than recomputed on read, so an old quote keeps the numbers
+    // it was given after the pricing model changes.
     /** systemSizeKw * 1200. */
-    systemPrice: numeric("system_price", {
-      precision: 12,
-      scale: 2,
-      mode: "number",
-    }).notNull(),
+    systemPriceCents: integer("system_price_cents").notNull(),
     /** systemPrice - downPayment. */
-    principal: numeric("principal", {
-      precision: 12,
-      scale: 2,
-      mode: "number",
-    }).notNull(),
+    principalCents: integer("principal_cents").notNull(),
     riskBand: riskBandEnum("risk_band").notNull(),
     /** Base APR for the band, as a percentage — `6.9` means 6.9%. */
     apr: numeric("apr", { precision: 5, scale: 2, mode: "number" }).notNull(),
+    /**
+     * Stored inline rather than in a third table: a quote always has exactly
+     * three, they never change once computed, and nothing reads an offer
+     * without its quote.
+     */
     offers: jsonb("offers").$type<QuoteOffer[]>().notNull(),
 
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -140,10 +117,15 @@ export const quotes = pgTable(
       sql`${table.monthlyConsumptionKwh} > 0`,
     ),
     check("quotes_system_size_kw_positive", sql`${table.systemSizeKw} > 0`),
-    check("quotes_down_payment_non_negative", sql`${table.downPayment} >= 0`),
     check(
-      "quotes_principal_matches_price",
-      sql`${table.principal} = ${table.systemPrice} - ${table.downPayment}`,
+      "quotes_down_payment_cents_non_negative",
+      sql`${table.downPaymentCents} >= 0`,
+    ),
+    // A down payment that covers the whole price leaves nothing to finance.
+    check("quotes_principal_cents_positive", sql`${table.principalCents} > 0`),
+    check(
+      "quotes_principal_cents_matches_price",
+      sql`${table.principalCents} = ${table.systemPriceCents} - ${table.downPaymentCents}`,
     ),
   ],
 );
