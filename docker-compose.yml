@@ -1,0 +1,31 @@
+# Project name is pinned so the volume/network keep stable names no matter
+# which directory (or git worktree) compose is run from.
+name: green-quote
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: green-quote-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-green_quote}
+      # Require a real password instead of trusting anything that connects.
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
+    ports:
+      # Host port is configurable so it can dodge a Postgres already on 5432.
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      # Any .sql/.sh dropped in here runs once, on first init of an empty volume.
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-green_quote}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  postgres-data:
