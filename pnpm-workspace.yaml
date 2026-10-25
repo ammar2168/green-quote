@@ -1,3 +1,5 @@
 allowBuilds:
   sharp: false
   unrs-resolver: false
+  # drizzle-kit shells out to esbuild to load drizzle.config.ts / db/schema.ts.
+  esbuild: true
