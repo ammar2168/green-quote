@@ -53,7 +53,7 @@ beforeEach(() => {
 });
 
 describe("login", () => {
-  it("signs the user in and redirects to the dashboard", async () => {
+  it("signs the user in and redirects to the new-quote form", async () => {
     selectResult.rows = [USER];
 
     await expect(
@@ -61,7 +61,7 @@ describe("login", () => {
     ).rejects.toThrow("NEXT_REDIRECT");
 
     expect(createSession).toHaveBeenCalledWith(USER.id);
-    expect(redirect).toHaveBeenCalledWith("/dashboard");
+    expect(redirect).toHaveBeenCalledWith("/quotes/new");
   });
 
   it("rejects a wrong password", async () => {

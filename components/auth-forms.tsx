@@ -1,10 +1,11 @@
 "use client";
 
-import { useActionState, useId } from "react";
+import { useActionState } from "react";
 
 import { login, signup } from "@/app/actions/auth";
 import type { AuthFormState } from "@/lib/auth-form-state";
 
+import { Field } from "./field";
 import { primaryButton } from "./site-chrome";
 
 export function LoginForm() {
@@ -68,46 +69,6 @@ export function SignupForm() {
         Create account
       </SubmitButton>
     </form>
-  );
-}
-
-type FieldProps = React.ComponentProps<"input"> & {
-  label: string;
-  name: string;
-  hint?: string;
-  error?: string;
-};
-
-function Field({ label, hint, error, ...input }: FieldProps) {
-  const id = useId();
-  const noteId = `${id}-note`;
-  const note = error ?? hint;
-
-  return (
-    <div>
-      <label htmlFor={id} className="text-sm font-medium">
-        {label}
-      </label>
-      <input
-        id={id}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={note ? noteId : undefined}
-        className={`mt-1 w-full rounded-control border bg-surface px-3 py-2.5 text-sm font-medium outline-none transition focus:ring-2 ${
-          error
-            ? "border-danger focus:border-danger focus:ring-danger/20"
-            : "border-line-strong focus:border-brand focus:ring-brand/20"
-        }`}
-        {...input}
-      />
-      {note && (
-        <p
-          id={noteId}
-          className={`mt-1 text-xs ${error ? "text-danger" : "text-subtle"}`}
-        >
-          {note}
-        </p>
-      )}
-    </div>
   );
 }
 

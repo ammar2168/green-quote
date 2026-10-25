@@ -16,7 +16,7 @@ const MAX_EMAIL_LENGTH = 254;
 const MAX_NAME_LENGTH = 200;
 
 /** Where both sign-up and sign-in land. */
-const AFTER_AUTH = "/dashboard";
+const AFTER_AUTH = "/quotes/new";
 
 /**
  * A real hash of a value nobody knows, verified against when no user matches
