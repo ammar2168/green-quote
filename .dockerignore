@@ -1,0 +1,21 @@
+# Keep the build context small and free of host-built or secret files. The
+# image installs its own node_modules (host ones may be built for macOS) and
+# gets its configuration from the environment at runtime, never from .env.
+.git
+.claude
+node_modules
+.next
+coverage
+test-results
+playwright-report
+blob-report
+playwright/.cache
+*.tsbuildinfo
+next-env.d.ts
+.env*
+!.env.example
+Dockerfile
+.dockerignore
+docker-compose.yml
+*.pdf
+.DS_Store

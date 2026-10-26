@@ -25,6 +25,19 @@ Before calling work done, run all three and keep them green:
 
 When a change touches sign-in, the quote form or the quote page, also run `pnpm test:e2e` (see "End-to-end tests" below).
 
+### Running the whole stack in Docker
+
+```bash
+docker compose --profile app up -d --build    # postgres, then migrate, then app on :3000 (APP_PORT)
+docker compose run --rm migrate pnpm db:seed:admin '<password>'
+docker compose --profile app down             # the data volume survives
+```
+
+- The `Dockerfile` has two targets. `runner` (the default) is the Next.js `output: "standalone"` server (switched on by `NEXT_OUTPUT_STANDALONE=1`, which only the Dockerfile sets, because `next start` warns against standalone builds): no pnpm, no source, non-root, with a `HEALTHCHECK` on `/api/health`. `tools` holds the full dependencies and source for one-off jobs (`pnpm db:migrate`, the default command, and `pnpm db:seed:admin`).
+- `app` and `migrate` sit behind the `app` profile, so a plain `docker compose up -d` still starts only Postgres for `pnpm dev`. Compose points them at `postgres:5432` on its network and takes `SESSION_SECRET` from `.env`; `.env` is never copied into an image.
+- All configuration is runtime environment (`DATABASE_URL`, `SESSION_SECRET`, `LOG_LEVEL`, `PORT`). The build sets placeholder values only so `next build` can load route modules. To deploy, push the `runner` image and run the `tools` image as a release job against the production `DATABASE_URL` before each rollout.
+- A file the server reads by a runtime path (like the PDF fonts) is invisible to the standalone file tracer, so list it in `outputFileTracingIncludes` in `next.config.ts`.
+
 Importing `db/index.ts` or `lib/session.ts` throws at module load when `DATABASE_URL` / `SESSION_SECRET` is unset. Scripts outside Next (`scripts/`, `drizzle.config.ts`) load `.env` themselves through `@next/env`, and a new script imports `./load-env` first for the same reason.
 
 ## Layout and layering

@@ -4,6 +4,16 @@ const nextConfig: NextConfig = {
   /* config options here */
   cacheComponents: true,
   partialPrefetching: true,
+  // A self-contained server in `.next/standalone` for the Docker image. Only
+  // the Dockerfile asks for it: `next start` (which the e2e suite runs) warns
+  // that it does not support standalone builds.
+  output: process.env.NEXT_OUTPUT_STANDALONE === "1" ? "standalone" : undefined,
+  // `server/quote-pdf.ts` reads the fonts through a runtime path, which the
+  // file tracer cannot follow, so they would be missing from the standalone
+  // output.
+  outputFileTracingIncludes: {
+    "/api/quotes/\\[id\\]/pdf": ["./assets/fonts/**/*"],
+  },
   // Development-only output, which `instrumentation.ts` routes through the
   // app's logger so it shares one stream with the app's own lines.
   logging: {

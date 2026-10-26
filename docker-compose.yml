@@ -33,5 +33,46 @@ services:
       retries: 5
       start_period: 30s
 
+  # The app and its migration job sit behind the `app` profile, so a plain
+  # `docker compose up -d` still starts only Postgres for `pnpm dev`. Run the
+  # whole stack with `docker compose --profile app up -d --build`.
+
+  # One-shot: applies db/migrations, then exits. `app` waits for it to succeed.
+  migrate:
+    profiles: [app]
+    build:
+      context: .
+      target: tools
+    image: green-quote-tools
+    environment:
+      # Inside the compose network Postgres is `postgres:5432`, not the
+      # localhost URL in .env that `pnpm dev` uses.
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-green_quote}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  app:
+    profiles: [app]
+    build:
+      context: .
+      target: runner
+    image: green-quote-app
+    container_name: green-quote-app
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-green_quote}
+      # Read from .env. The app refuses to start without it.
+      SESSION_SECRET: ${SESSION_SECRET:-}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "${APP_PORT:-3000}:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
 volumes:
   postgres-data:
