@@ -117,3 +117,31 @@ Your data is kept. Add `-v` to the `down` command to wipe it.
 `pnpm test --run`, `pnpm typecheck`, `pnpm lint` and `pnpm format:check` must
 pass before a change is done. See [CLAUDE.md](CLAUDE.md) for architecture and
 conventions.
+
+## End-to-end tests
+
+These drive a real browser through sign-in and the quote flow. They use the
+developer path (Option B) setup.
+
+```bash
+docker compose up -d                    # the database must be running
+pnpm exec playwright install chromium   # first time only
+pnpm test:e2e
+```
+
+The tests create their own throwaway database (`green_quote_e2e`), build the
+app and run it on port 3200, then delete the database when they finish. Your
+normal data is never touched, and `pnpm dev` can keep running alongside.
+
+- Watch the tests in a browser window: `pnpm test:e2e --ui`
+- Keep the test database to inspect after a failure: `E2E_KEEP_DB=1 pnpm test:e2e`
+
+## Things to do later
+
+- **Continuous integration.** On every push and pull request, a CI job runs:
+  1. unit tests, typecheck, lint and format check
+  2. end-to-end tests (CI starts its own Postgres service)
+  3. only if all pass, builds the Docker image (and later pushes it for
+     deploys)
+- Profile editing and password reset.
+- Pagination on the quote and user lists.
