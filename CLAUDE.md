@@ -52,6 +52,7 @@ Tests sit next to the file they test as `*.test.ts(x)`.
 | `/admin` | admin | Redirects to `/admin/users`. |
 | `/admin/users` | admin | Name/email filters through a GET `next/form` (`?name=&email=`). |
 | `/admin/users/[id]` and `.../quotes/[quoteId]` | admin | Read-only views reusing `QuotesTable` / `QuoteBreakdown`. |
+| `GET /api/health` | public | App and database status (`server/health.ts` runs `select 1` with a 2 s timeout). 200 when healthy, 503 when the database is unreachable; `no-store`, no internal details in the body. |
 | `POST /api/quotes` | user | 201 + `Location`; 400 / 401 / 413 / 415. |
 | `DELETE /api/quotes/[id]` | user (owner) | 204; 401; 404. |
 | `GET /api/quotes/[id]/pdf?term=` | owner or admin | The quote as an A4 PDF (`lib/quote-pdf.ts`) with the chosen offer's schedule; no term means the 10-year one. 200 attachment; 400 `invalid_term`; 401; 404. |
