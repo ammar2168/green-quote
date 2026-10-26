@@ -1,0 +1,100 @@
+/*
+ * Swagger UI, brought in line with the app's tokens. Scoped to the wrapper so
+ * nothing here can leak into the rest of the app once the stylesheet is
+ * loaded. Method colours stay Swagger's own: they are the convention readers
+ * scan for.
+ */
+
+.api-reference .swagger-ui,
+.api-reference .swagger-ui .info .title,
+.api-reference .swagger-ui .opblock-tag,
+.api-reference .swagger-ui .opblock .opblock-summary-description,
+.api-reference .swagger-ui .opblock .opblock-summary-path,
+.api-reference .swagger-ui .markdown p,
+.api-reference .swagger-ui .renderedMarkdown p,
+.api-reference .swagger-ui table thead tr th,
+.api-reference .swagger-ui .parameter__name,
+.api-reference .swagger-ui .response-col_status,
+.api-reference .swagger-ui .tab li,
+.api-reference .swagger-ui .btn,
+.api-reference .swagger-ui .model-title,
+.api-reference .swagger-ui section.models h4 {
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  color: var(--color-ink);
+}
+
+.api-reference .swagger-ui code,
+.api-reference .swagger-ui .model,
+.api-reference .swagger-ui .microlight {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+}
+
+/*
+ * The page has its own heading and a link to the document, there is one
+ * origin to call, and the session cookie needs no Authorize button.
+ */
+.api-reference .swagger-ui .information-container .main,
+.api-reference .swagger-ui .scheme-container,
+.api-reference .swagger-ui .authorization__btn {
+  display: none;
+}
+
+.api-reference .swagger-ui .wrapper {
+  max-width: none;
+  padding: 0;
+}
+
+.api-reference .swagger-ui .info {
+  margin: 0 0 2rem;
+}
+
+.api-reference .swagger-ui .info .markdown p {
+  color: var(--color-muted);
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
+
+.api-reference .swagger-ui .info code {
+  border-radius: 0.25rem;
+  background: var(--color-sunken);
+  padding: 0.05rem 0.3rem;
+  color: var(--color-ink);
+}
+
+.api-reference .swagger-ui .opblock-tag {
+  border-bottom-color: var(--color-line);
+}
+
+.api-reference .swagger-ui .opblock {
+  border-radius: var(--radius-control);
+  box-shadow: var(--shadow-card);
+}
+
+.api-reference .swagger-ui .opblock .opblock-summary-method {
+  border-radius: 0.375rem;
+}
+
+.api-reference .swagger-ui section.models {
+  border-color: var(--color-line);
+  border-radius: var(--radius-control);
+}
+
+.api-reference .swagger-ui .btn {
+  border-radius: var(--radius-control);
+  box-shadow: none;
+}
+
+.api-reference .swagger-ui .btn.execute {
+  border-color: var(--color-brand);
+  background: var(--color-brand);
+  color: var(--color-on-brand);
+}
+
+.api-reference .swagger-ui .btn.execute:hover {
+  background: var(--color-brand-strong);
+}
+
+.api-reference .swagger-ui a.nostyle,
+.api-reference .swagger-ui .info a {
+  color: var(--color-brand-strong);
+}

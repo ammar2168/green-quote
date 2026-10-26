@@ -3,3 +3,5 @@ allowBuilds:
   unrs-resolver: false
   # drizzle-kit shells out to esbuild to load drizzle.config.ts / db/schema.ts.
   esbuild: true
+  # swagger-ui-dist's install-time usage telemetry; nothing needs it.
+  "@scarf/scarf": false

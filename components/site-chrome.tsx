@@ -46,7 +46,12 @@ export function SiteFooter() {
           greenQuote is a demo app. Quotes are estimates for illustration, not
           financial offers.
         </p>
-        <p>Next.js · TypeScript · PostgreSQL · Drizzle</p>
+        <p>
+          Next.js · TypeScript · PostgreSQL · Drizzle ·{" "}
+          <Link href="/docs" className="underline hover:text-ink">
+            API
+          </Link>
+        </p>
       </div>
     </footer>
   );
