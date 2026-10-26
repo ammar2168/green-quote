@@ -1,5 +1,3 @@
-@AGENTS.md
-
 # greenQuote
 
 Solar pre-qualification quotes. A signed-in user enters address, monthly kWh and system size (plus an optional down payment) and gets a system price, a risk band, an APR and three installment offers (5/10/15 years) with an amortization schedule. Every quote is saved to their account. An admin can browse all users and view any user's quotes.
@@ -19,7 +17,7 @@ pnpm dev                      # .claude/launch.json runs it on port 3100
 Before calling work done, run all three and keep them green:
 
 - `pnpm test --run`: Vitest (bare `pnpm test` starts watch mode).
-- `pnpm typecheck`: the global `PageProps`, `LayoutProps` and `RouteContext` types are generated into `.next/`. In a fresh checkout or worktree, run `pnpm exec next typegen` first (or `pnpm dev` once).
+- `pnpm typecheck`: the global `PageProps`, `LayoutProps` and `RouteContext` types are generated into `.next/`, so the script runs `next typegen` before `tsc`. That way it also passes in a fresh checkout or worktree.
 - `pnpm lint`
 - `pnpm format:check` (`pnpm format` rewrites). Prettier owns formatting; `eslint-config-prettier` turns off the ESLint rules that would fight it.
 
@@ -44,16 +42,16 @@ Importing `db/index.ts` or `lib/session.ts` throws at module load when `DATABASE
 
 Code flows one way: `app/` (routes) → `components/` (UI) and `server/` (DB reads/writes) → `lib/` (pure logic and helpers) → `db/` (schema).
 
-| Path            | Holds                                                                                                                                                                                                                                                                          |
-| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `app/`          | Routes. `(auth)/` route group for `/login` and `/signup` with a shared layout. `actions/auth.ts` holds the signup/login/logout Server Actions. `api/quotes/` is the JSON API. `admin/` contains the admin pages. `dashboard/` is a leftover placeholder that nothing links to. |
-| `components/`   | One component (or a small family) per kebab-case file, named exports, no barrel files.                                                                                                                                                                                         |
-| `server/`       | Data access per domain (`quotes.ts`, `admin.ts`) plus `http.ts` for the shared JSON route plumbing. Only Server Components and route handlers import from here.                                                                                                                |
-| `lib/`          | Pure, React-free modules shared by server and browser (`quote.ts`, `money.ts`, `amortization.ts`, `quote-schema.ts`), plus server-only helpers (`session.ts`, `current-user.ts`, `password.ts`).                                                                               |
-| `db/`           | `schema.ts` (the single source of truth for tables), `index.ts` (pool + `db`), `migrations/` (drizzle-kit output). `db/init/` is mounted as Postgres's init-script directory.                                                                                                  |
-| `scripts/`      | `tsx` CLI scripts (`seed-admin.ts`), plus `init-env.sh` (POSIX sh, so it runs before Node is installed).                                                                                                                                                                       |
-| `e2e/`          | Playwright specs (`*.spec.ts`), the test-database lifecycle (`global-setup.ts`, `global-teardown.ts`, `support/test-database.ts`) and fixtures (`support/fixtures.ts`). Vitest excludes this directory.                                                                        |
-| `assets/fonts/` | Geist TTFs (OFL) embedded in the quote PDF, read by `server/quote-pdf.ts`. The standard PDF fonts only encode Windows-1252, so a name like "Łukasz" would make them throw.                                                                                                     |
+| Path            | Holds                                                                                                                                                                                                            |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `app/`          | Routes. `(auth)/` route group for `/login` and `/signup` with a shared layout. `actions/auth.ts` holds the signup/login/logout Server Actions. `api/quotes/` is the JSON API. `admin/` contains the admin pages. |
+| `components/`   | One component (or a small family) per kebab-case file, named exports, no barrel files.                                                                                                                           |
+| `server/`       | Data access per domain (`quotes.ts`, `admin.ts`) plus `http.ts` for the shared JSON route plumbing. Only Server Components and route handlers import from here.                                                  |
+| `lib/`          | Pure, React-free modules shared by server and browser (`quote.ts`, `money.ts`, `amortization.ts`, `quote-schema.ts`), plus server-only helpers (`session.ts`, `current-user.ts`, `password.ts`).                 |
+| `db/`           | `schema.ts` (the single source of truth for tables), `index.ts` (pool + `db`), `migrations/` (drizzle-kit output). `db/init/` is mounted as Postgres's init-script directory.                                    |
+| `scripts/`      | `tsx` CLI scripts (`seed-admin.ts`), plus `init-env.sh` (POSIX sh, so it runs before Node is installed).                                                                                                         |
+| `e2e/`          | Playwright specs (`*.spec.ts`), the test-database lifecycle (`global-setup.ts`, `global-teardown.ts`, `support/test-database.ts`) and fixtures (`support/fixtures.ts`). Vitest excludes this directory.          |
+| `assets/fonts/` | Geist TTFs (OFL) embedded in the quote PDF, read by `server/quote-pdf.ts`. The standard PDF fonts only encode Windows-1252, so a name like "Łukasz" would make them throw.                                       |
 
 Tests sit next to the file they test as `*.test.ts(x)`.
 
@@ -209,5 +207,4 @@ pnpm test:e2e                              # builds, starts on :3200, runs e2e/
 
 ## Known gaps
 
-- `/dashboard` is an unused placeholder from before quotes existed.
 - There are no profile editing, password reset or admin write actions (admin is read-only), and no pagination on the lists.

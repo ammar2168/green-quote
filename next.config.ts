@@ -1,9 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
   cacheComponents: true,
   partialPrefetching: true,
+  // Stops `next dev` from writing a generic AGENTS.md into the repo whenever
+  // it detects an AI agent; CLAUDE.md already covers this project's Next.js
+  // conventions.
+  agentRules: false,
   // A self-contained server in `.next/standalone` for the Docker image. Only
   // the Dockerfile asks for it: `next start` (which the e2e suite runs) warns
   // that it does not support standalone builds.
