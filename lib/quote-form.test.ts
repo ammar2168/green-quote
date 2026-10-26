@@ -150,7 +150,9 @@ describe("submitQuote", () => {
     expect(
       await submitQuote(
         BODY,
-        vi.fn(async () => new Response("<html>Bad gateway</html>", { status: 502 })),
+        vi.fn(
+          async () => new Response("<html>Bad gateway</html>", { status: 502 }),
+        ),
       ),
     ).toEqual(generic);
     expect(

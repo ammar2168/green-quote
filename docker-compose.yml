@@ -23,7 +23,11 @@ services:
       # Any .sql/.sh dropped in here runs once, on first init of an empty volume.
       - ./db/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-green_quote}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-green_quote}",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5

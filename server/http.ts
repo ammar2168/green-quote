@@ -1,6 +1,12 @@
 import type { z } from "zod";
 
 import { fieldErrors } from "@/lib/field-errors";
+import {
+  logger,
+  requestIdFrom,
+  setLogContext,
+  withLogContext,
+} from "@/lib/logger";
 
 /**
  * Plumbing shared by the JSON route handlers. Every error leaves in one shape,
@@ -32,6 +38,12 @@ export function apiError(
     error: { code, message, ...(fields && { fields }) },
   };
 
+  // So the request's log line says why it was refused, not just the status.
+  setLogContext({
+    errorCode: code,
+    ...(fields && { invalidFields: Object.keys(fields) }),
+  });
+
   return Response.json(body, { status });
 }
 
@@ -43,12 +55,7 @@ export function validationError(error: z.ZodError): Response {
     return apiError(400, "invalid_body", error.issues[0].message);
   }
 
-  return apiError(
-    400,
-    "validation_failed",
-    "Some fields need fixing.",
-    fields,
-  );
+  return apiError(400, "validation_failed", "Some fields need fixing.", fields);
 }
 
 /**
@@ -106,23 +113,59 @@ export async function readJson(
 /**
  * Wraps a route handler so an unexpected failure still answers in the error
  * shape above, rather than Next.js's empty 500, and without leaking details.
+ *
+ * It also logs one line per request — method, path, status, duration, the
+ * user and any error code — under a request id that every log line inside the
+ * handler shares and that the response returns as `x-request-id`, so a user's
+ * report of a failure can be matched to its log lines.
  */
 export function jsonRoute<Context = unknown>(
   handler: (request: Request, context: Context) => Promise<Response>,
 ): (request: Request, context: Context) => Promise<Response> {
-  return async (request, context) => {
-    try {
-      return await handler(request, context);
-    } catch (error) {
-      const { pathname } = new URL(request.url);
+  return (request, context) => {
+    const requestId = requestIdFrom(request.headers);
+    const { pathname } = new URL(request.url);
 
-      console.error(`${request.method} ${pathname}`, error);
+    return withLogContext(
+      { requestId, method: request.method, path: pathname },
+      async () => {
+        const startedAt = performance.now();
+        let response: Response;
+        let failure: unknown;
 
-      return apiError(
-        500,
-        "internal_error",
-        "Something went wrong on our side. Please try again.",
-      );
-    }
+        try {
+          response = await handler(request, context);
+        } catch (error) {
+          failure = error;
+          response = apiError(
+            500,
+            "internal_error",
+            "Something went wrong on our side. Please try again.",
+          );
+        }
+
+        const fields = {
+          status: response.status,
+          durationMs: Math.round(performance.now() - startedAt),
+          ...(failure !== undefined && { err: failure }),
+        };
+
+        if (response.status >= 500) {
+          logger.error("request failed", fields);
+        } else if (response.status >= 400) {
+          logger.warn("request rejected", fields);
+        } else {
+          logger.info("request completed", fields);
+        }
+
+        try {
+          response.headers.set("x-request-id", requestId);
+        } catch {
+          // Some responses (Response.redirect) have immutable headers.
+        }
+
+        return response;
+      },
+    );
   };
 }

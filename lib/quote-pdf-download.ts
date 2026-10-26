@@ -9,8 +9,7 @@ import { readApiError } from "./quote-form";
  */
 
 export type QuotePdfResult =
-  | { ok: true; blob: Blob; filename: string }
-  | { ok: false; message: string };
+  { ok: true; blob: Blob; filename: string } | { ok: false; message: string };
 
 const GENERIC_FAILURE =
   "We could not create the PDF. Check your connection and try again.";

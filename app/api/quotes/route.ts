@@ -1,4 +1,5 @@
 import { getCurrentUser } from "@/lib/current-user";
+import { setLogContext } from "@/lib/logger";
 import { quoteRequestSchema } from "@/lib/quote-schema";
 import { createQuote, toQuoteResponse } from "@/server/quotes";
 import { apiError, jsonRoute, readJson, validationError } from "@/server/http";
@@ -26,6 +27,8 @@ export const POST = jsonRoute(async (request) => {
   if (!parsed.success) return validationError(parsed.error);
 
   const quote = await createQuote(user.id, parsed.data);
+
+  setLogContext({ quoteId: quote.id });
 
   return Response.json(toQuoteResponse(quote), {
     status: 201,

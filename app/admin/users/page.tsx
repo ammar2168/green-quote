@@ -132,7 +132,9 @@ async function UserDirectory({
                       {user.quoteCount}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-muted">
-                      {user.lastQuoteAt ? formatQuoteDate(user.lastQuoteAt) : "—"}
+                      {user.lastQuoteAt
+                        ? formatQuoteDate(user.lastQuoteAt)
+                        : "—"}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-muted">
                       {formatQuoteDate(user.createdAt)}

@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { logger } from "@/lib/logger";
+
 import { checkDatabase } from "./health";
 
 // How the next `db.execute` behaves: resolve, reject, or never settle.
@@ -23,7 +25,7 @@ vi.mock("@/db", () => ({
 
 beforeEach(() => {
   state.outcome = "ok";
-  vi.spyOn(console, "error").mockImplementation(() => {});
+  vi.spyOn(logger, "error");
 });
 
 afterEach(() => {
@@ -54,7 +56,10 @@ describe("checkDatabase", () => {
     const result = await checkDatabase();
 
     expect(JSON.stringify(result)).not.toContain("ECONNREFUSED");
-    expect(console.error).toHaveBeenCalled();
+    expect(logger.error).toHaveBeenCalledWith("health check failed", {
+      check: "database",
+      err: expect.objectContaining({ message: "ECONNREFUSED 127.0.0.1:5432" }),
+    });
   });
 
   it("gives up with an error when the database never answers", async () => {

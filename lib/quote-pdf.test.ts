@@ -49,12 +49,9 @@ function makeQuote(
 }
 
 async function render(quote: Quote, termIndex = 1) {
-  const bytes = await buildQuotePdf(
-    quote,
-    quote.offers[termIndex],
-    FONTS,
-    { generatedAt: new Date("2026-10-26T12:00:00Z") },
-  );
+  const bytes = await buildQuotePdf(quote, quote.offers[termIndex], FONTS, {
+    generatedAt: new Date("2026-10-26T12:00:00Z"),
+  });
 
   return { bytes, pdf: await PDFDocument.load(bytes) };
 }
@@ -105,9 +102,7 @@ describe("printableText", () => {
   });
 
   it("drops invisible format characters", () => {
-    expect(printableText("Ada​ Love‮lace", latinOnly)).toBe(
-      "Ada Lovelace",
-    );
+    expect(printableText("Ada​ Love‮lace", latinOnly)).toBe("Ada Lovelace");
   });
 
   it("replaces a character the font cannot draw with ?", () => {
@@ -167,7 +162,11 @@ describe("buildQuotePdf", () => {
 
   it("copes with the longest name and address, in any script", async () => {
     const quote = makeQuote({
-      fullName: `Łukasz Żółć 中文 😀 ${"Wolfeschlegelsteinhausen".repeat(7)}`.slice(0, 200),
+      fullName:
+        `Łukasz Żółć 中文 😀 ${"Wolfeschlegelsteinhausen".repeat(7)}`.slice(
+          0,
+          200,
+        ),
       address: "Flat 4,\n221B Baker Street, Москва\t".repeat(15).slice(0, 500),
       email: `${"a".repeat(64)}@example.com`,
     });
@@ -181,7 +180,11 @@ describe("buildQuotePdf", () => {
   it("handles the largest system with no down payment", async () => {
     const quote = makeQuote(
       {},
-      { monthlyConsumptionKwh: 100_000, systemSizeKw: 100, downPaymentCents: 0 },
+      {
+        monthlyConsumptionKwh: 100_000,
+        systemSizeKw: 100,
+        downPaymentCents: 0,
+      },
     );
 
     await expect(render(quote, 2)).resolves.toBeTruthy();
@@ -190,7 +193,11 @@ describe("buildQuotePdf", () => {
   it("handles the smallest loan, a single cent", async () => {
     const quote = makeQuote(
       {},
-      { monthlyConsumptionKwh: 0.01, systemSizeKw: 0.01, downPaymentCents: 1199 },
+      {
+        monthlyConsumptionKwh: 0.01,
+        systemSizeKw: 0.01,
+        downPaymentCents: 1199,
+      },
     );
 
     expect(quote.principalCents).toBe(1);

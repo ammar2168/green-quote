@@ -137,11 +137,11 @@ describe("QuoteOffers' PDF download", () => {
       createObjectURL: () => "blob:quote",
       revokeObjectURL: () => {},
     });
-    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(
-      function (this: HTMLAnchorElement) {
-        saved.push({ href: this.href, download: this.download });
-      },
-    );
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (
+      this: HTMLAnchorElement,
+    ) {
+      saved.push({ href: this.href, download: this.download });
+    });
 
     return { requested, saved };
   }

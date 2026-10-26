@@ -79,7 +79,11 @@ export function QuotesTable({
                     href={quoteHref(quote.id)}
                     className="font-semibold whitespace-nowrap text-brand hover:text-brand-strong"
                   >
-                    View<span className="sr-only"> quote from {formatQuoteDate(quote.createdAt)}</span>
+                    View
+                    <span className="sr-only">
+                      {" "}
+                      quote from {formatQuoteDate(quote.createdAt)}
+                    </span>
                   </Link>
                   {rowActions?.(quote)}
                 </div>

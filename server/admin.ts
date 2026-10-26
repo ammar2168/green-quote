@@ -33,9 +33,7 @@ const userColumns = {
  * each has. Both filters are case-insensitive substring matches, and an empty
  * filter matches everyone.
  */
-export async function listUsers(
-  filters: UserFilters,
-): Promise<AdminUserRow[]> {
+export async function listUsers(filters: UserFilters): Promise<AdminUserRow[]> {
   const conditions: SQL[] = [];
 
   if (filters.name) {

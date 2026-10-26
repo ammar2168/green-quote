@@ -1,4 +1,5 @@
 import { getCurrentUser } from "@/lib/current-user";
+import { setLogContext } from "@/lib/logger";
 import { findAnyQuote } from "@/server/admin";
 import { apiError, jsonRoute } from "@/server/http";
 import { quotePdfResponse, resolvePdfOffer } from "@/server/quote-pdf";
@@ -22,6 +23,8 @@ export const GET = jsonRoute<RouteContext<"/api/quotes/[id]/pdf">>(
     }
 
     const { id } = await params;
+
+    setLogContext({ quoteId: id });
     const quote =
       user.role === "admin"
         ? await findAnyQuote(id)
@@ -34,17 +37,15 @@ export const GET = jsonRoute<RouteContext<"/api/quotes/[id]/pdf">>(
     const term = new URL(request.url).searchParams.get("term");
     const offer = resolvePdfOffer(quote.offers, term);
 
+    if (term !== null) setLogContext({ term });
+
     if (!offer) {
       // The quote's own terms: a snapshot may predate a change to them.
-      const terms = new Intl.ListFormat("en-GB", { type: "disjunction" }).format(
-        quote.offers.map((offer) => String(offer.termYears)),
-      );
+      const terms = new Intl.ListFormat("en-GB", {
+        type: "disjunction",
+      }).format(quote.offers.map((offer) => String(offer.termYears)));
 
-      return apiError(
-        400,
-        "invalid_term",
-        `Choose a term of ${terms} years.`,
-      );
+      return apiError(400, "invalid_term", `Choose a term of ${terms} years.`);
     }
 
     return quotePdfResponse(quote, offer);

@@ -4,6 +4,7 @@ import { cache } from "react";
 
 import { db } from "@/db";
 import { users } from "@/db/schema";
+import { setLogContext } from "@/lib/logger";
 
 import { readSession } from "./session";
 
@@ -39,7 +40,12 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     .limit(1);
 
   // A valid cookie for a deleted user, which is a signed-out user.
-  return user ?? null;
+  if (!user) return null;
+
+  // Every later log line in this request then says whose request it was.
+  setLogContext({ userId: user.id, role: user.role });
+
+  return user;
 });
 
 /** For pages that must not render to a signed-out visitor. */

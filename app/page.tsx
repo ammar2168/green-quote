@@ -182,7 +182,10 @@ export default function Home() {
           </ol>
         </section>
 
-        <section id="rates" className={`${container} scroll-mt-20 pt-16 sm:pt-24`}>
+        <section
+          id="rates"
+          className={`${container} scroll-mt-20 pt-16 sm:pt-24`}
+        >
           <SectionHeading
             eyebrow="Transparent pricing"
             title="Your usage sets your band. Your band sets your rate."
@@ -223,8 +226,8 @@ export default function Home() {
                 Example: {SAMPLE_KW} kW system, {SAMPLE_KWH} kWh a month
               </p>
               <p className="text-sm text-muted">
-                {formatCents(sample.systemPriceCents, { wholeDollars: true })}{" "}
-                · Band {sample.riskBand} · no down payment
+                {formatCents(sample.systemPriceCents, { wholeDollars: true })} ·
+                Band {sample.riskBand} · no down payment
               </p>
             </div>
             <dl className="grid grid-cols-3 divide-x divide-line">

@@ -9,7 +9,11 @@ import {
   yearlySchedule,
 } from "@/lib/amortization";
 import { formatCents } from "@/lib/money";
-import { type OfferTermYears, type QuoteOffer, defaultOffer } from "@/lib/quote";
+import {
+  type OfferTermYears,
+  type QuoteOffer,
+  defaultOffer,
+} from "@/lib/quote";
 
 import { AmortizationChart } from "./amortization-chart";
 import { DownloadQuotePdfButton } from "./download-quote-pdf-button";
@@ -63,9 +67,7 @@ export function QuoteOffers({
                 aria-pressed={isSelected}
                 onClick={() => setSelectedTerm(offer.termYears)}
                 className={`relative rounded-card border bg-surface p-5 text-left shadow-card transition hover:border-line-strong focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:outline-none sm:p-6 ${
-                  isSelected
-                    ? "border-brand ring-1 ring-brand"
-                    : "border-line"
+                  isSelected ? "border-brand ring-1 ring-brand" : "border-line"
                 }`}
               >
                 {offer.monthlyPaymentCents === lowestMonthly && (
@@ -146,9 +148,8 @@ function Schedule({
             Amortization schedule · {offer.termYears} years
           </h2>
           <p className="mt-1 text-sm text-muted">
-            {months.length} payments of{" "}
-            {formatCents(offer.monthlyPaymentCents)}. Early payments are mostly
-            interest; later ones mostly principal.
+            {months.length} payments of {formatCents(offer.monthlyPaymentCents)}
+            . Early payments are mostly interest; later ones mostly principal.
           </p>
         </div>
         <DownloadQuotePdfButton quoteId={quoteId} termYears={offer.termYears} />
@@ -204,7 +205,9 @@ function Schedule({
                     >
                       {row.period}
                     </th>
-                    <td className="px-3 py-2.5">{formatCents(row.paidCents)}</td>
+                    <td className="px-3 py-2.5">
+                      {formatCents(row.paidCents)}
+                    </td>
                     <td className="px-3 py-2.5">
                       {formatCents(row.principalCents)}
                     </td>

@@ -91,7 +91,9 @@ describe("QuoteForm", () => {
     await user.type(screen.getByLabelText("System size"), "1000");
     await user.click(submitButton());
 
-    expect(screen.getByText("System size must be 100 kW or less.")).toBeTruthy();
+    expect(
+      screen.getByText("System size must be 100 kW or less."),
+    ).toBeTruthy();
     expect(fetchMock).not.toHaveBeenCalled();
     expect(push).not.toHaveBeenCalled();
     expect(screen.getByLabelText("System size")).toHaveProperty(

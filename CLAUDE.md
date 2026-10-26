@@ -21,6 +21,7 @@ Before calling work done, run all three and keep them green:
 - `pnpm test --run`: Vitest (bare `pnpm test` starts watch mode).
 - `pnpm typecheck`: the global `PageProps`, `LayoutProps` and `RouteContext` types are generated into `.next/`. In a fresh checkout or worktree, run `pnpm exec next typegen` first (or `pnpm dev` once).
 - `pnpm lint`
+- `pnpm format:check` (`pnpm format` rewrites). Prettier owns formatting; `eslint-config-prettier` turns off the ESLint rules that would fight it.
 
 Importing `db/index.ts` or `lib/session.ts` throws at module load when `DATABASE_URL` / `SESSION_SECRET` is unset. Scripts outside Next (`scripts/`, `drizzle.config.ts`) load `.env` themselves through `@next/env`, and a new script imports `./load-env` first for the same reason.
 
@@ -28,40 +29,41 @@ Importing `db/index.ts` or `lib/session.ts` throws at module load when `DATABASE
 
 Code flows one way: `app/` (routes) → `components/` (UI) and `server/` (DB reads/writes) → `lib/` (pure logic and helpers) → `db/` (schema).
 
-| Path | Holds |
-|---|---|
-| `app/` | Routes. `(auth)/` route group for `/login` and `/signup` with a shared layout. `actions/auth.ts` holds the signup/login/logout Server Actions. `api/quotes/` is the JSON API. `admin/` contains the admin pages. `dashboard/` is a leftover placeholder that nothing links to. |
-| `components/` | One component (or a small family) per kebab-case file, named exports, no barrel files. |
-| `server/` | Data access per domain (`quotes.ts`, `admin.ts`) plus `http.ts` for the shared JSON route plumbing. Only Server Components and route handlers import from here. |
-| `lib/` | Pure, React-free modules shared by server and browser (`quote.ts`, `money.ts`, `amortization.ts`, `quote-schema.ts`), plus server-only helpers (`session.ts`, `current-user.ts`, `password.ts`). |
-| `db/` | `schema.ts` (the single source of truth for tables), `index.ts` (pool + `db`), `migrations/` (drizzle-kit output). `db/init/` is mounted as Postgres's init-script directory. |
-| `scripts/` | `tsx` CLI scripts (`seed-admin.ts`). |
-| `assets/fonts/` | Geist TTFs (OFL) embedded in the quote PDF, read by `server/quote-pdf.ts`. The standard PDF fonts only encode Windows-1252, so a name like "Łukasz" would make them throw. |
+| Path            | Holds                                                                                                                                                                                                                                                                          |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `app/`          | Routes. `(auth)/` route group for `/login` and `/signup` with a shared layout. `actions/auth.ts` holds the signup/login/logout Server Actions. `api/quotes/` is the JSON API. `admin/` contains the admin pages. `dashboard/` is a leftover placeholder that nothing links to. |
+| `components/`   | One component (or a small family) per kebab-case file, named exports, no barrel files.                                                                                                                                                                                         |
+| `server/`       | Data access per domain (`quotes.ts`, `admin.ts`) plus `http.ts` for the shared JSON route plumbing. Only Server Components and route handlers import from here.                                                                                                                |
+| `lib/`          | Pure, React-free modules shared by server and browser (`quote.ts`, `money.ts`, `amortization.ts`, `quote-schema.ts`), plus server-only helpers (`session.ts`, `current-user.ts`, `password.ts`).                                                                               |
+| `db/`           | `schema.ts` (the single source of truth for tables), `index.ts` (pool + `db`), `migrations/` (drizzle-kit output). `db/init/` is mounted as Postgres's init-script directory.                                                                                                  |
+| `scripts/`      | `tsx` CLI scripts (`seed-admin.ts`).                                                                                                                                                                                                                                           |
+| `assets/fonts/` | Geist TTFs (OFL) embedded in the quote PDF, read by `server/quote-pdf.ts`. The standard PDF fonts only encode Windows-1252, so a name like "Łukasz" would make them throw.                                                                                                     |
 
 Tests sit next to the file they test as `*.test.ts(x)`.
 
 ### Routes
 
-| Route | Access | Notes |
-|---|---|---|
-| `/` | public | Landing page. Its sample numbers come from the real `calculateQuote`. |
-| `/login`, `/signup` | public | `useActionState` forms backed by `app/actions/auth.ts`. Users land on `/quotes/new`, admins on `/admin/users`. |
-| `/quotes/new` | user | `QuoteForm`, prefilled with the user's name and email. |
-| `/quotes` | user | The user's quotes, with delete. |
-| `/quotes/[id]` | user (owner) | `QuoteBreakdown` plus delete. |
-| `/admin` | admin | Redirects to `/admin/users`. |
-| `/admin/users` | admin | Name/email filters through a GET `next/form` (`?name=&email=`). |
-| `/admin/users/[id]` and `.../quotes/[quoteId]` | admin | Read-only views reusing `QuotesTable` / `QuoteBreakdown`. |
-| `GET /api/health` | public | App and database status (`server/health.ts` runs `select 1` with a 2 s timeout). 200 when healthy, 503 when the database is unreachable; `no-store`, no internal details in the body. |
-| `POST /api/quotes` | user | 201 + `Location`; 400 / 401 / 413 / 415. |
-| `DELETE /api/quotes/[id]` | user (owner) | 204; 401; 404. |
-| `GET /api/quotes/[id]/pdf?term=` | owner or admin | The quote as an A4 PDF (`lib/quote-pdf.ts`) with the chosen offer's schedule; no term means the 10-year one. 200 attachment; 400 `invalid_term`; 401; 404. |
+| Route                                          | Access         | Notes                                                                                                                                                                                 |
+| ---------------------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/`                                            | public         | Landing page. Its sample numbers come from the real `calculateQuote`.                                                                                                                 |
+| `/login`, `/signup`                            | public         | `useActionState` forms backed by `app/actions/auth.ts`. Users land on `/quotes/new`, admins on `/admin/users`.                                                                        |
+| `/quotes/new`                                  | user           | `QuoteForm`, prefilled with the user's name and email.                                                                                                                                |
+| `/quotes`                                      | user           | The user's quotes, with delete.                                                                                                                                                       |
+| `/quotes/[id]`                                 | user (owner)   | `QuoteBreakdown` plus delete.                                                                                                                                                         |
+| `/admin`                                       | admin          | Redirects to `/admin/users`.                                                                                                                                                          |
+| `/admin/users`                                 | admin          | Name/email filters through a GET `next/form` (`?name=&email=`).                                                                                                                       |
+| `/admin/users/[id]` and `.../quotes/[quoteId]` | admin          | Read-only views reusing `QuotesTable` / `QuoteBreakdown`.                                                                                                                             |
+| `GET /api/health`                              | public         | App and database status (`server/health.ts` runs `select 1` with a 2 s timeout). 200 when healthy, 503 when the database is unreachable; `no-store`, no internal details in the body. |
+| `POST /api/quotes`                             | user           | 201 + `Location`; 400 / 401 / 413 / 415.                                                                                                                                              |
+| `DELETE /api/quotes/[id]`                      | user (owner)   | 204; 401; 404.                                                                                                                                                                        |
+| `GET /api/quotes/[id]/pdf?term=`               | owner or admin | The quote as an A4 PDF (`lib/quote-pdf.ts`) with the chosen offer's schedule; no term means the 10-year one. 200 attachment; 400 `invalid_term`; 401; 404.                            |
 
 There is no `middleware.ts` / `proxy.ts`. Each page and handler guards itself.
 
 ## Core domain rules
 
 **Pricing model (`lib/quote.ts`).** These are pure functions, run on the server to save a quote and in the browser for display.
+
 - Price = `systemSizeKw × $1,200` (`PRICE_PER_KW_CENTS`).
 - Principal = price − down payment, and must be > 0.
 - Risk band: A if kWh ≥ 400 **and** kW ≤ 6; else B if kWh ≥ 250; else C. APR is A 6.9, B 8.9, C 11.9 (`APR_BY_BAND`, stored as a percentage number: `6.9` means 6.9%).
@@ -85,12 +87,20 @@ There is no `middleware.ts` / `proxy.ts`. Each page and handler guards itself.
 
 ## API conventions (`server/http.ts`)
 
-- Wrap every JSON handler in `jsonRoute(...)`. It catches unexpected errors, logs `METHOD path`, and returns a generic 500 in the standard shape.
+- Wrap every JSON handler in `jsonRoute(...)`. It catches unexpected errors, logs every request (see Logging), and returns a generic 500 in the standard shape.
 - Every error body is `{ error: { code, message, fields? } }`, built with `apiError(status, code, message)` or `validationError(zodError)`. Codes are snake_case (`validation_failed`, `unauthorized`, `not_found`, `invalid_json`, …). `fields` maps each field to its first message (`lib/field-errors.ts`).
 - Read bodies with `readJson(request)`. It requires `application/json` (this doubles as the CSRF guard), caps the body at 16 KB, and returns `{ ok, body } | { ok: false, response }`.
 - Check auth first, before reading the body.
 - Responses serialise with `toQuoteResponse` (`server/quotes.ts`): dollars, ISO dates, and `inputs` / `derived` / `offers` groups.
 - Client callers live in `lib/` as React-free functions that take an injectable `fetchImpl` (`submitQuote`, `requestQuoteDeletion`, `requestQuotePdf`) and return a discriminated-union result, with a 401-specific message and a generic network-failure message. `readApiError` tolerates non-JSON bodies.
+
+## Logging (`lib/logger.ts`)
+
+- Server code logs through `logger` (`logger.info("msg", { fields })`), never `console`. Messages are short and fixed ("request completed"); variable data goes in fields, so lines can be filtered. Pass an error as `err`, which is serialised with its `cause` chain (where Drizzle keeps the Postgres `code`) and Next.js `digest`.
+- `jsonRoute` runs each API request inside `withLogContext({ requestId, method, path })`, logs one line when it ends (info under 400, warn for 4xx, error for 5xx with the `err`), and returns the id as `x-request-id`; an incoming plain `x-request-id` is reused. `apiError` adds `errorCode` (and `invalidFields`) to that line, `getCurrentUser` adds `userId` and `role`, and handlers add ids such as `quoteId` with `setLogContext`.
+- Never log passwords, emails, names, addresses or request bodies: ids, field names and outcomes only. Auth events go through `logger.child({ source: "auth" })`.
+- `instrumentation.ts` routes Next.js's own output (its `console` calls, its dev request lines, forwarded browser warnings) through the logger as `source: "next"`, and logs errors Next.js caught (pages, Server Actions) from `onRequestError`. The `▲ Next.js … Ready` banner is printed before `register()` runs, so it stays plain.
+- Output is JSON lines on stdout, or one readable line per event under `next dev`. `LOG_LEVEL` and `LOG_FORMAT` override; Vitest runs with `LOG_LEVEL=silent`, so tests spy on `logger` rather than read output.
 
 ## Next.js 16 patterns used here
 

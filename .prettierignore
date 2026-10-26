@@ -1,0 +1,4 @@
+# Generated: drizzle-kit owns the migrations and their snapshots.
+db/migrations/
+pnpm-lock.yaml
+next-env.d.ts

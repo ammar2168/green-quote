@@ -9,7 +9,11 @@ const tabs = [
  * Looks like a segmented control, but each side is its own route, so the
  * browser's back button and a shared /signup link both behave.
  */
-export function AuthTabs({ active }: { active: (typeof tabs)[number]["href"] }) {
+export function AuthTabs({
+  active,
+}: {
+  active: (typeof tabs)[number]["href"];
+}) {
   return (
     <nav
       aria-label="Account"

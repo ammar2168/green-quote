@@ -73,7 +73,6 @@ describe("GET /api/health", () => {
   });
 
   it("answers a generic 500 if the probe itself blows up", async () => {
-    vi.spyOn(console, "error").mockImplementation(() => {});
     state.probeError = new Error("boom");
 
     const response = await get();

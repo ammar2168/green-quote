@@ -1,5 +1,7 @@
 import { sql } from "drizzle-orm";
 
+import { logger } from "@/lib/logger";
+
 /**
  * A probe that hangs is as bad as one that fails: an orchestrator waiting on
  * it would time out with no answer. Two seconds is far longer than a healthy
@@ -40,7 +42,7 @@ export async function checkDatabase(
     return { status: "ok", latencyMs: elapsedSince(startedAt) };
   } catch (error) {
     // Logged in full here; the public response carries only a generic message.
-    console.error("Health check: database probe failed", error);
+    logger.error("health check failed", { check: "database", err: error });
 
     return {
       status: "error",

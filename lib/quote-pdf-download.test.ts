@@ -38,7 +38,11 @@ describe("requestQuotePdf", () => {
   });
 
   it("is the file and the server's filename on success", async () => {
-    const result = await requestQuotePdf(QUOTE_ID, 10, respondWith(pdfResponse()));
+    const result = await requestQuotePdf(
+      QUOTE_ID,
+      10,
+      respondWith(pdfResponse()),
+    );
 
     expect(result.ok).toBe(true);
 
@@ -116,7 +120,11 @@ describe("requestQuotePdf", () => {
 
   it("is a generic failure when the network is down", async () => {
     expect(
-      await requestQuotePdf(QUOTE_ID, 10, respondWith(new TypeError("offline"))),
+      await requestQuotePdf(
+        QUOTE_ID,
+        10,
+        respondWith(new TypeError("offline")),
+      ),
     ).toEqual({ ok: false, message: GENERIC_FAILURE });
   });
 
@@ -139,9 +147,7 @@ describe("requestQuotePdf", () => {
       await requestQuotePdf(
         QUOTE_ID,
         10,
-        respondWith(
-          new Response(new Blob([], { type: "application/pdf" })),
-        ),
+        respondWith(new Response(new Blob([], { type: "application/pdf" }))),
       ),
     ).toEqual({ ok: false, message: GENERIC_FAILURE });
   });

@@ -127,7 +127,10 @@ export function quotePdfFilename(quoteId: string, termYears: number): string {
 
 /** The short id printed on the quote, as in the filename. */
 export function quoteReference(quoteId: string): string {
-  return quoteId.replace(/[^0-9a-z]/gi, "").slice(0, 8).toLowerCase();
+  return quoteId
+    .replace(/[^0-9a-z]/gi, "")
+    .slice(0, 8)
+    .toLowerCase();
 }
 
 /**
@@ -403,13 +406,16 @@ function drawBand(layout: Layout, quote: Quote) {
   });
 
   layout.space(padding);
-  layout.line(`Pre-qualified: risk band ${quote.riskBand}  ·  ${quote.apr}% APR`, {
-    x: MARGIN_X + padding,
-    size: 13,
-    font: fonts.semiBold,
-    color: COLOR.brandStrong,
-    lineHeight: 18,
-  });
+  layout.line(
+    `Pre-qualified: risk band ${quote.riskBand}  ·  ${quote.apr}% APR`,
+    {
+      x: MARGIN_X + padding,
+      size: 13,
+      font: fonts.semiBold,
+      color: COLOR.brandStrong,
+      lineHeight: 18,
+    },
+  );
 
   for (const text of meaning) {
     layout.line(text, {
@@ -475,7 +481,11 @@ function drawFacts(layout: Layout, quote: Quote, reference: string) {
   layout.space(20);
 }
 
-function drawOffers(layout: Layout, offers: QuoteOffer[], selected: QuoteOffer) {
+function drawOffers(
+  layout: Layout,
+  offers: QuoteOffer[],
+  selected: QuoteOffer,
+) {
   const lowestMonthly = Math.min(...offers.map((o) => o.monthlyPaymentCents));
 
   sectionHeading(layout, "Installment offers", 22 + 20 * offers.length);
@@ -597,7 +607,12 @@ function sectionHeading(layout: Layout, text: string, keepWith: number) {
 }
 
 type Column = { label: string; width: number; align: "left" | "right" };
-type Row = { cells: string[]; note?: string; highlight?: boolean; total?: boolean };
+type Row = {
+  cells: string[];
+  note?: string;
+  highlight?: boolean;
+  total?: boolean;
+};
 
 /**
  * A table whose header repeats at the top of every page it runs onto, so a
@@ -681,10 +696,7 @@ function drawTable(
       const label = row.cells[0];
 
       drawText(layout.page, row.note, {
-        x:
-          edges[0] +
-          fonts.semiBold.widthOfTextAtSize(label, size) +
-          6,
+        x: edges[0] + fonts.semiBold.widthOfTextAtSize(label, size) + 6,
         top: top - 1.5,
         size: 7,
         font: fonts.regular,
@@ -745,7 +757,11 @@ function drawFooters(pdf: PDFDocument, fonts: Fonts) {
 
     const style = { size: 8, font: fonts.regular, color: COLOR.subtle };
 
-    drawText(page, DISCLAIMER, { ...style, x: MARGIN_X, top: FOOTER_RULE_Y - 10 });
+    drawText(page, DISCLAIMER, {
+      ...style,
+      x: MARGIN_X,
+      top: FOOTER_RULE_Y - 10,
+    });
     drawText(page, `Page ${index + 1} of ${pages.length}`, {
       ...style,
       x: MARGIN_X + CONTENT_WIDTH,

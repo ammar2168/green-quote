@@ -8,5 +8,7 @@ export default defineConfig({
   },
   test: {
     environment: "node",
+    // Tests that need log output assert on a logger of their own.
+    env: { LOG_LEVEL: "silent" },
   },
 });

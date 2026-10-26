@@ -8,6 +8,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import type { AuthFormState } from "@/lib/auth-form-state";
+import { logger } from "@/lib/logger";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { createSession, deleteSession } from "@/lib/session";
 
@@ -38,6 +39,13 @@ const DECOY_HASH = hashPassword(randomBytes(32).toString("hex"));
  * are registered.
  */
 const INVALID_CREDENTIALS = "Invalid email or password.";
+
+/**
+ * Auth events are logged by user id and outcome only: never the password, and
+ * not the email either, since a mistyped password is sometimes typed into the
+ * email field.
+ */
+const authLog = logger.child({ source: "auth" });
 
 /** Good enough to catch typos; the real check is whether mail arrives. */
 function looksLikeEmail(value: string): boolean {
@@ -79,6 +87,11 @@ export async function signup(
   }
 
   if (Object.keys(errors).length > 0) {
+    authLog.info("sign-up rejected", {
+      reason: "invalid_fields",
+      invalidFields: Object.keys(errors),
+    });
+
     return { errors, values };
   }
 
@@ -97,6 +110,8 @@ export async function signup(
     // users_email_lower_unique rejected it. Checking for the row first would
     // still race, so the constraint is the check and this is the handler.
     if (isUniqueViolation(error)) {
+      authLog.info("sign-up rejected", { reason: "email_taken" });
+
       return {
         errors: { email: "That email already has an account." },
         values,
@@ -107,6 +122,8 @@ export async function signup(
   }
 
   await createSession(userId);
+
+  authLog.info("signed up", { userId });
 
   // Outside the try: redirect() signals by throwing, so a catch would swallow it.
   redirect(AFTER_AUTH);
@@ -122,6 +139,8 @@ export async function login(
   const values = { email };
 
   if (!email || !password) {
+    authLog.info("sign-in rejected", { reason: "missing_fields" });
+
     return { message: INVALID_CREDENTIALS, values };
   }
 
@@ -140,20 +159,32 @@ export async function login(
   if (!user) {
     await verifyPassword(password, await DECOY_HASH);
 
+    // Repeated warnings here are what credential stuffing looks like.
+    authLog.warn("sign-in rejected", { reason: "unknown_email" });
+
     return { message: INVALID_CREDENTIALS, values };
   }
 
   if (!(await verifyPassword(password, user.passwordHash))) {
+    authLog.warn("sign-in rejected", {
+      reason: "wrong_password",
+      userId: user.id,
+    });
+
     return { message: INVALID_CREDENTIALS, values };
   }
 
   await createSession(user.id);
+
+  authLog.info("signed in", { userId: user.id, role: user.role });
 
   redirect(user.role === "admin" ? AFTER_ADMIN_AUTH : AFTER_AUTH);
 }
 
 export async function logout(): Promise<void> {
   await deleteSession();
+
+  authLog.info("signed out");
 
   redirect("/login");
 }

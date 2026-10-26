@@ -1,4 +1,5 @@
 import { getCurrentUser } from "@/lib/current-user";
+import { setLogContext } from "@/lib/logger";
 import { deleteQuote } from "@/server/quotes";
 import { apiError, jsonRoute } from "@/server/http";
 
@@ -19,6 +20,8 @@ export const DELETE = jsonRoute<RouteContext<"/api/quotes/[id]">>(
     }
 
     const { id } = await params;
+
+    setLogContext({ quoteId: id });
 
     if (!(await deleteQuote(user.id, id))) {
       return apiError(404, "not_found", "That quote does not exist.");

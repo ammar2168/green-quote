@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { CurrentUser } from "@/lib/current-user";
+import { logger } from "@/lib/logger";
 
 import { POST } from "./route";
 
@@ -230,7 +231,7 @@ describe("POST /api/quotes", () => {
 
   it("answers a database failure in the error shape, without details", async () => {
     state.insertError = new Error("connection refused");
-    vi.spyOn(console, "error").mockImplementation(() => {});
+    const logError = vi.spyOn(logger, "error");
 
     const response = await post(BODY);
 
@@ -240,6 +241,13 @@ describe("POST /api/quotes", () => {
         code: "internal_error",
         message: "Something went wrong on our side. Please try again.",
       },
+    });
+    // The details go to the log instead, under the id the response carries.
+    expect(response.headers.get("x-request-id")).toEqual(expect.any(String));
+    expect(logError).toHaveBeenCalledWith("request failed", {
+      status: 500,
+      durationMs: expect.any(Number),
+      err: state.insertError,
     });
   });
 });
