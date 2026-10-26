@@ -9,7 +9,7 @@ Stack: Next.js 16 App Router (`cacheComponents`, Turbopack), React 19, TypeScrip
 ## Local setup and verification
 
 ```bash
-cp .env.example .env          # then set SESSION_SECRET (openssl rand -base64 32)
+sh scripts/init-env.sh        # creates .env with a random SESSION_SECRET; never replaces one
 docker compose up -d          # Postgres; compose project name is pinned, so all worktrees share one DB
 pnpm db:migrate
 pnpm db:seed:admin '<password>'   # admin@greenquote; re-running resets the password
@@ -51,7 +51,7 @@ Code flows one way: `app/` (routes) → `components/` (UI) and `server/` (DB rea
 | `server/`       | Data access per domain (`quotes.ts`, `admin.ts`) plus `http.ts` for the shared JSON route plumbing. Only Server Components and route handlers import from here.                                                                                                                |
 | `lib/`          | Pure, React-free modules shared by server and browser (`quote.ts`, `money.ts`, `amortization.ts`, `quote-schema.ts`), plus server-only helpers (`session.ts`, `current-user.ts`, `password.ts`).                                                                               |
 | `db/`           | `schema.ts` (the single source of truth for tables), `index.ts` (pool + `db`), `migrations/` (drizzle-kit output). `db/init/` is mounted as Postgres's init-script directory.                                                                                                  |
-| `scripts/`      | `tsx` CLI scripts (`seed-admin.ts`).                                                                                                                                                                                                                                           |
+| `scripts/`      | `tsx` CLI scripts (`seed-admin.ts`), plus `init-env.sh` (POSIX sh, so it runs before Node is installed).                                                                                                                                                                       |
 | `e2e/`          | Playwright specs (`*.spec.ts`), the test-database lifecycle (`global-setup.ts`, `global-teardown.ts`, `support/test-database.ts`) and fixtures (`support/fixtures.ts`). Vitest excludes this directory.                                                                        |
 | `assets/fonts/` | Geist TTFs (OFL) embedded in the quote PDF, read by `server/quote-pdf.ts`. The standard PDF fonts only encode Windows-1252, so a name like "Łukasz" would make them throw.                                                                                                     |
 
