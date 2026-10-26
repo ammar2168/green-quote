@@ -4,7 +4,7 @@
 
 Solar pre-qualification quotes. A signed-in user enters address, monthly kWh and system size (plus an optional down payment) and gets a system price, a risk band, an APR and three installment offers (5/10/15 years) with an amortization schedule. Every quote is saved to their account. An admin can browse all users and view any user's quotes.
 
-Stack: Next.js 16 App Router (`cacheComponents`, Turbopack), React 19, TypeScript strict, Tailwind v4, PostgreSQL 18 through Drizzle ORM (`node-postgres`), Zod 4, `jose` JWT sessions, Vitest 5. Package manager is **pnpm**. Import alias `@/*` maps to the repo root.
+Stack: Next.js 16 App Router (`cacheComponents`, Turbopack), React 19, TypeScript strict, Tailwind v4, PostgreSQL 18 through Drizzle ORM (`node-postgres`), Zod 4, `jose` JWT sessions, Vitest 5, Playwright. Package manager is **pnpm**. Import alias `@/*` maps to the repo root.
 
 ## Local setup and verification
 
@@ -23,6 +23,8 @@ Before calling work done, run all three and keep them green:
 - `pnpm lint`
 - `pnpm format:check` (`pnpm format` rewrites). Prettier owns formatting; `eslint-config-prettier` turns off the ESLint rules that would fight it.
 
+When a change touches sign-in, the quote form or the quote page, also run `pnpm test:e2e` (see "End-to-end tests" below).
+
 Importing `db/index.ts` or `lib/session.ts` throws at module load when `DATABASE_URL` / `SESSION_SECRET` is unset. Scripts outside Next (`scripts/`, `drizzle.config.ts`) load `.env` themselves through `@next/env`, and a new script imports `./load-env` first for the same reason.
 
 ## Layout and layering
@@ -37,6 +39,7 @@ Code flows one way: `app/` (routes) → `components/` (UI) and `server/` (DB rea
 | `lib/`          | Pure, React-free modules shared by server and browser (`quote.ts`, `money.ts`, `amortization.ts`, `quote-schema.ts`), plus server-only helpers (`session.ts`, `current-user.ts`, `password.ts`).                                                                               |
 | `db/`           | `schema.ts` (the single source of truth for tables), `index.ts` (pool + `db`), `migrations/` (drizzle-kit output). `db/init/` is mounted as Postgres's init-script directory.                                                                                                  |
 | `scripts/`      | `tsx` CLI scripts (`seed-admin.ts`).                                                                                                                                                                                                                                           |
+| `e2e/`          | Playwright specs (`*.spec.ts`), the test-database lifecycle (`global-setup.ts`, `global-teardown.ts`, `support/test-database.ts`) and fixtures (`support/fixtures.ts`). Vitest excludes this directory.                                                                        |
 | `assets/fonts/` | Geist TTFs (OFL) embedded in the quote PDF, read by `server/quote-pdf.ts`. The standard PDF fonts only encode Windows-1252, so a name like "Łukasz" would make them throw.                                                                                                     |
 
 Tests sit next to the file they test as `*.test.ts(x)`.
@@ -159,6 +162,22 @@ Enums and shared literal unions are declared as `as const` arrays (`userRoles`, 
 - No test touches a real database. Mock `@/db` with a fake, thenable query builder, and keep mutable state in `vi.hoisted(() => ({ state: … }))`. Mock `@/lib/current-user`, `@/lib/session` and `next/navigation` as needed. Stub `fetch` with `vi.stubGlobal`.
 - Route handlers are tested by calling the exported `POST` / `DELETE` directly with a `Request` and `{ params: Promise.resolve({...}) }`.
 - Test names are behaviour sentences ("is undefined when no quote matches — missing, or another user's"). Pure `lib/` logic gets the most thorough coverage. New logic belongs in a pure `lib/` module so it can be tested without a browser.
+
+### End-to-end tests (Playwright)
+
+```bash
+docker compose up -d                       # needs the Postgres server running
+pnpm exec playwright install chromium      # once per machine
+pnpm test:e2e                              # builds, starts on :3200, runs e2e/
+```
+
+- **Real, throwaway database.** Global setup creates `<DATABASE_URL db>_e2e` (for example `green_quote_e2e`) on the same server, dropping any leftover first, and applies `db/migrations` with Drizzle's migrator. Global teardown drops it with `WITH (FORCE)` once all tests have finished, pass or fail. Set `E2E_DATABASE_URL` to use a different database. The name must end in `_e2e` or `_test`, or the suite refuses to run, so it can never drop the development database. `E2E_KEEP_DB=1` skips the drop so you can inspect it after a failure.
+- The app runs as a production build (`pnpm build && pnpm start --port 3200`) with `DATABASE_URL` pointed at the test database and a fixed e2e `SESSION_SECRET`, so no `SESSION_SECRET` in `.env` is needed. `reuseExistingServer` is off, because a server already on that port could be using the development database.
+- Import `test` / `expect` from `e2e/support/fixtures.ts`. The `user` fixture inserts a fresh user with a unique email for each test, and the worker-scoped `db` fixture is a `pg` pool on the test database for arranging rows and checking what the app saved. Tests own their data and run in parallel. `signIn(page, user)` goes through the real form.
+- Expected figures come from `calculateQuote` / `formatCents`, not literals.
+- Locate inputs by role (`getByRole("textbox", { name })`), not `getByLabel`. Next.js keeps the previous page (such as `/login`) mounted but hidden after a navigation, and only role queries skip hidden elements.
+- Sign-in runs scrypt, which takes seconds on a busy machine. The config therefore runs two workers locally (one on CI) and raises the test timeout to 60 s and the `expect` timeout to 20 s.
+- Only one run can use port 3200 and `green_quote_e2e` at a time (a `--ui` session holds both until it closes). For a second run alongside, set `E2E_PORT` and a separate `E2E_DATABASE_URL`.
 
 ## Code style
 

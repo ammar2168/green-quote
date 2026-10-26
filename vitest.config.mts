@@ -1,6 +1,6 @@
 import { fileURLToPath } from "node:url";
 
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 
 export default defineConfig({
   resolve: {
@@ -10,5 +10,7 @@ export default defineConfig({
     environment: "node",
     // Tests that need log output assert on a logger of their own.
     env: { LOG_LEVEL: "silent" },
+    // Playwright specs, run by `pnpm test:e2e` instead.
+    exclude: [...configDefaults.exclude, "e2e/**"],
   },
 });
