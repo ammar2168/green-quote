@@ -107,12 +107,12 @@ export async function readJson(
  * Wraps a route handler so an unexpected failure still answers in the error
  * shape above, rather than Next.js's empty 500, and without leaking details.
  */
-export function jsonRoute(
-  handler: (request: Request) => Promise<Response>,
-): (request: Request) => Promise<Response> {
-  return async (request) => {
+export function jsonRoute<Context = unknown>(
+  handler: (request: Request, context: Context) => Promise<Response>,
+): (request: Request, context: Context) => Promise<Response> {
+  return async (request, context) => {
     try {
-      return await handler(request);
+      return await handler(request, context);
     } catch (error) {
       const { pathname } = new URL(request.url);
 

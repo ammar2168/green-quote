@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { findQuote, listQuotes } from "./quotes";
+import { deleteQuote, findQuote, listQuotes } from "./quotes";
 
 // What the next query resolves with, and how many queries actually ran.
 const { state } = vi.hoisted(() => ({
@@ -15,13 +15,14 @@ vi.mock("@/db", () => {
     where: () => query,
     orderBy: () => query,
     limit: () => query,
+    returning: () => query,
     then: (resolve: (rows: unknown[]) => unknown) => {
       state.queries++;
       return Promise.resolve(state.rows).then(resolve);
     },
   };
 
-  return { db: { select: () => query } };
+  return { db: { select: () => query, delete: () => query } };
 });
 
 const QUOTE_ID = "c9bf4081-c228-413f-bad6-24e769f85162";
@@ -54,5 +55,22 @@ describe("listQuotes", () => {
     state.rows = [{ id: "b" }, { id: "a" }];
 
     expect(await listQuotes("user-1")).toEqual([{ id: "b" }, { id: "a" }]);
+  });
+});
+
+describe("deleteQuote", () => {
+  it("is true when the query deleted the quote", async () => {
+    state.rows = [{ id: QUOTE_ID }];
+
+    expect(await deleteQuote("user-1", QUOTE_ID)).toBe(true);
+  });
+
+  it("is false when nothing matched — missing, or another user's", async () => {
+    expect(await deleteQuote("user-1", QUOTE_ID)).toBe(false);
+  });
+
+  it("does not query for an id that is not a uuid", async () => {
+    expect(await deleteQuote("user-1", "not-a-uuid")).toBe(false);
+    expect(state.queries).toBe(0);
   });
 });

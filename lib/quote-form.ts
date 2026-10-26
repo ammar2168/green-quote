@@ -96,7 +96,7 @@ export async function submitQuote(
   return { status: "failed", message: error?.message ?? GENERIC_FAILURE };
 }
 
-async function readApiError(
+export async function readApiError(
   response: Response,
 ): Promise<ApiErrorBody["error"] | undefined> {
   try {

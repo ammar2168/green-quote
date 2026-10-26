@@ -13,11 +13,14 @@ export function QuotesTable({
   quotes,
   caption,
   quoteHref,
+  rowActions,
   empty,
 }: {
   quotes: Quote[];
   caption: string;
   quoteHref: (quoteId: string) => string;
+  /** Extra controls beside "View" — only the owner's own list has any. */
+  rowActions?: (quote: Quote) => ReactNode;
   /** Shown instead of the table when there are no quotes. */
   empty: ReactNode;
 }) {
@@ -71,12 +74,15 @@ export function QuotesTable({
                 <span className="text-muted">· {quote.apr}% APR</span>
               </td>
               <td className="px-4 py-3 text-right sm:px-6">
-                <Link
-                  href={quoteHref(quote.id)}
-                  className="font-semibold whitespace-nowrap text-brand hover:text-brand-strong"
-                >
-                  View<span className="sr-only"> quote from {formatQuoteDate(quote.createdAt)}</span>
-                </Link>
+                <div className="flex items-center justify-end gap-4">
+                  <Link
+                    href={quoteHref(quote.id)}
+                    className="font-semibold whitespace-nowrap text-brand hover:text-brand-strong"
+                  >
+                    View<span className="sr-only"> quote from {formatQuoteDate(quote.createdAt)}</span>
+                  </Link>
+                  {rowActions?.(quote)}
+                </div>
               </td>
             </tr>
           ))}

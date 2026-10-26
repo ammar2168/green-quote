@@ -89,6 +89,25 @@ export async function findQuote(
   return quote;
 }
 
+/**
+ * Deletes one of the user's own quotes. False when there was nothing of
+ * theirs to delete, so — as with `findQuote` — another user's quote id looks
+ * exactly like one that does not exist.
+ */
+export async function deleteQuote(
+  userId: string,
+  quoteId: string,
+): Promise<boolean> {
+  if (!z.uuid().safeParse(quoteId).success) return false;
+
+  const deleted = await db
+    .delete(quotes)
+    .where(and(eq(quotes.id, quoteId), eq(quotes.userId, userId)))
+    .returning({ id: quotes.id });
+
+  return deleted.length > 0;
+}
+
 export function toQuoteResponse(quote: Quote): QuoteResponse {
   return {
     id: quote.id,

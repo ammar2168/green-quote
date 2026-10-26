@@ -67,6 +67,7 @@ function post(
       headers: contentType ? { "content-type": contentType } : {},
       body: typeof body === "string" ? body : JSON.stringify(body),
     }),
+    { params: Promise.resolve({}) },
   );
 }
 

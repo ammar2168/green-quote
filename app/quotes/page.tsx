@@ -2,10 +2,12 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { AppHeader } from "@/components/app-header";
+import { DeleteQuoteButton } from "@/components/delete-quote-button";
 import { NewQuoteLink } from "@/components/new-quote-link";
 import { QuotesTable, TableSkeleton } from "@/components/quotes-table";
 import { SiteFooter } from "@/components/site-chrome";
 import { requireUser } from "@/lib/current-user";
+import { formatQuoteDate } from "@/lib/format";
 import { listQuotes } from "@/server/quotes";
 
 export const metadata: Metadata = {
@@ -54,6 +56,12 @@ async function MyQuotes() {
       quotes={quotes}
       caption="Your quotes"
       quoteHref={(id) => `/quotes/${id}`}
+      rowActions={(quote) => (
+        <DeleteQuoteButton
+          quoteId={quote.id}
+          label={`quote from ${formatQuoteDate(quote.createdAt)}`}
+        />
+      )}
       empty={
         <>
           <p className="font-semibold">No quotes yet</p>

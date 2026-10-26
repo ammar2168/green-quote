@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { AppHeader } from "@/components/app-header";
+import { DeleteQuoteButton } from "@/components/delete-quote-button";
 import { NewQuoteLink } from "@/components/new-quote-link";
 import { QuoteBreakdown, QuoteSkeleton } from "@/components/quote-breakdown";
 import { SiteFooter } from "@/components/site-chrome";
@@ -56,7 +57,14 @@ async function QuoteDetails({
           </h1>
           <p className="mt-1 text-muted">{quote.address}</p>
         </div>
-        <NewQuoteLink />
+        <div className="flex flex-wrap items-center gap-4 text-sm">
+          <DeleteQuoteButton
+            quoteId={quote.id}
+            label="this quote"
+            redirectTo="/quotes"
+          />
+          <NewQuoteLink />
+        </div>
       </div>
 
       <QuoteBreakdown quote={quote} />
