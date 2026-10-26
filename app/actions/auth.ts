@@ -8,6 +8,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import type { AuthFormState } from "@/lib/auth-form-state";
+import { USER_HOME_PATH, homePathFor } from "@/lib/home-path";
 import { logger } from "@/lib/logger";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { createSession, deleteSession } from "@/lib/session";
@@ -15,12 +16,6 @@ import { createSession, deleteSession } from "@/lib/session";
 const MIN_PASSWORD_LENGTH = 8;
 const MAX_EMAIL_LENGTH = 254;
 const MAX_NAME_LENGTH = 200;
-
-/** Where both sign-up and sign-in land. */
-const AFTER_AUTH = "/quotes/new";
-
-/** Where an admin lands on sign-in instead. */
-const AFTER_ADMIN_AUTH = "/admin/users";
 
 /**
  * A real hash of a value nobody knows, verified against when no user matches
@@ -126,7 +121,7 @@ export async function signup(
   authLog.info("signed up", { userId });
 
   // Outside the try: redirect() signals by throwing, so a catch would swallow it.
-  redirect(AFTER_AUTH);
+  redirect(USER_HOME_PATH);
 }
 
 export async function login(
@@ -178,7 +173,7 @@ export async function login(
 
   authLog.info("signed in", { userId: user.id, role: user.role });
 
-  redirect(user.role === "admin" ? AFTER_ADMIN_AUTH : AFTER_AUTH);
+  redirect(homePathFor(user.role));
 }
 
 export async function logout(): Promise<void> {

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 
 import { HeroArt } from "@/components/hero-art";
 import {
@@ -8,6 +8,7 @@ import {
   primaryButton,
   secondaryButton,
 } from "@/components/site-chrome";
+import { USER_HOME_PATH } from "@/lib/home-path";
 import { formatCents } from "@/lib/money";
 import {
   APR_BY_BAND,
@@ -17,6 +18,7 @@ import {
   riskBands,
   type RiskBand,
 } from "@/lib/quote";
+import { readSession } from "@/lib/session";
 
 // The hero's sample quote runs through the real pricing model, so the numbers
 // on the landing page can never drift from what the app actually quotes.
@@ -78,14 +80,26 @@ export default function Home() {
           </nav>
         }
         action={
-          <>
-            <Link href="/login" className={secondaryButton}>
-              Sign in
-            </Link>
-            <Link href="/signup" className={`${primaryButton} max-sm:hidden`}>
-              Create account
-            </Link>
-          </>
+          <ForViewer
+            signedOut={
+              <>
+                <Link href="/login" className={secondaryButton}>
+                  Sign in
+                </Link>
+                <Link
+                  href="/signup"
+                  className={`${primaryButton} max-sm:hidden`}
+                >
+                  Create account
+                </Link>
+              </>
+            }
+            signedIn={
+              <Link href="/quotes" className={primaryButton}>
+                Go to my quotes
+              </Link>
+            }
+          />
         }
       />
 
@@ -106,10 +120,7 @@ export default function Home() {
               loan terms.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="/login" className={`${primaryButton} px-5 py-3`}>
-                Get my quote
-                <ArrowIcon />
-              </Link>
+              <GetQuoteLink />
               <a
                 href="#how-it-works"
                 className={`${secondaryButton} px-5 py-3`}
@@ -274,16 +285,18 @@ export default function Home() {
                 <Chip>{offerTermYears.join(" · ")} year terms</Chip>
               </ul>
               <div className="mt-8 flex flex-wrap gap-3">
-                <Link href="/login" className={`${primaryButton} px-5 py-3`}>
-                  Get my quote
-                  <ArrowIcon />
-                </Link>
-                <Link
-                  href="/signup"
-                  className="inline-flex items-center justify-center rounded-control border border-white/30 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10"
-                >
-                  Create a free account
-                </Link>
+                <GetQuoteLink />
+                <ForViewer
+                  signedOut={
+                    <Link
+                      href="/signup"
+                      className="inline-flex items-center justify-center rounded-control border border-white/30 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-white/10"
+                    >
+                      Create a free account
+                    </Link>
+                  }
+                  signedIn={null}
+                />
               </div>
             </div>
           </div>
@@ -292,6 +305,59 @@ export default function Home() {
 
       <SiteFooter />
     </>
+  );
+}
+
+/**
+ * Renders `signedOut` or `signedIn` depending on the session cookie, so a
+ * signed-in visitor is not offered "Sign in" as if the session were lost.
+ *
+ * It checks the cookie's signature only, without the database round trip
+ * `getCurrentUser` makes, so the swap lands right after the static shell.
+ * That is enough to pick links: every page they lead to still runs
+ * `requireUser`. Until the cookie has been read, the signed-out version holds
+ * its space invisibly rather than flashing the wrong buttons.
+ */
+function ForViewer({
+  signedOut,
+  signedIn,
+}: {
+  signedOut: ReactNode;
+  signedIn: ReactNode;
+}) {
+  return (
+    <Suspense
+      fallback={
+        <span aria-hidden="true" className="invisible contents">
+          {signedOut}
+        </span>
+      }
+    >
+      <ViewerSwitch signedOut={signedOut} signedIn={signedIn} />
+    </Suspense>
+  );
+}
+
+async function ViewerSwitch({
+  signedOut,
+  signedIn,
+}: {
+  signedOut: ReactNode;
+  signedIn: ReactNode;
+}) {
+  return (await readSession()) ? signedIn : signedOut;
+}
+
+/**
+ * Always the quote form: `requireUser` there sends a signed-out visitor to
+ * sign in, so the link needs no session check and never waits on one.
+ */
+function GetQuoteLink() {
+  return (
+    <Link href={USER_HOME_PATH} className={`${primaryButton} px-5 py-3`}>
+      Get my quote
+      <ArrowIcon />
+    </Link>
   );
 }
 

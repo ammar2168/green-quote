@@ -4,6 +4,7 @@ import { cache } from "react";
 
 import { db } from "@/db";
 import { users } from "@/db/schema";
+import { homePathFor } from "@/lib/home-path";
 import { setLogContext } from "@/lib/logger";
 
 import { readSession } from "./session";
@@ -55,6 +56,17 @@ export async function requireUser(): Promise<CurrentUser> {
   if (!user) redirect("/login");
 
   return user;
+}
+
+/**
+ * For pages only a signed-out visitor needs (`/login`, `/signup`). A visitor
+ * with a valid session goes to their starting page instead of a form that
+ * reads as if the session had been lost.
+ */
+export async function redirectIfSignedIn(): Promise<void> {
+  const user = await getCurrentUser();
+
+  if (user) redirect(homePathFor(user.role));
 }
 
 /**

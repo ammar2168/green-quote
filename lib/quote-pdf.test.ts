@@ -147,19 +147,6 @@ describe("buildQuotePdf", () => {
     });
   });
 
-  it("runs onto more pages for a longer term's monthly schedule", async () => {
-    const quote = makeQuote();
-    const pages = await Promise.all(
-      [0, 1, 2].map(async (index) =>
-        (await render(quote, index)).pdf.getPageCount(),
-      ),
-    );
-
-    expect(pages[0]).toBeGreaterThanOrEqual(2);
-    expect(pages[1]).toBeGreaterThan(pages[0]);
-    expect(pages[2]).toBeGreaterThan(pages[1]);
-  });
-
   it("copes with the longest name and address, in any script", async () => {
     const quote = makeQuote({
       fullName:

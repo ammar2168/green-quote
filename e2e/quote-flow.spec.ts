@@ -210,6 +210,28 @@ test("shows field errors for an invalid quote and saves nothing", async ({
   expect(rows[0].count).toBe(0);
 });
 
+test("keeps a signed-in user out of the sign-in forms", async ({
+  page,
+  user,
+}) => {
+  await signIn(page, user);
+  await expect(page).toHaveURL("/quotes/new");
+
+  await page.goto("/login");
+  await expect(page).toHaveURL("/quotes/new");
+
+  await page.goto("/signup");
+  await expect(page).toHaveURL("/quotes/new");
+
+  await page.goto("/");
+  await expect(
+    page.getByRole("link", { name: "Go to my quotes" }),
+  ).toBeVisible();
+  await expect(page.getByRole("link", { name: "Sign in" })).toHaveCount(0);
+  await page.getByRole("link", { name: "Get my quote" }).first().click();
+  await expect(page).toHaveURL("/quotes/new");
+});
+
 test("sends a signed-out visitor to sign in", async ({ page }) => {
   await page.goto("/quotes/new");
 

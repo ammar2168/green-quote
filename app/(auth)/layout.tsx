@@ -1,6 +1,9 @@
+import { Suspense } from "react";
+
 import { HeroArt } from "@/components/hero-art";
 import { LogoMark } from "@/components/logo";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
+import { redirectIfSignedIn } from "@/lib/current-user";
 
 /**
  * Shared by /login and /signup. The hero and card frame live here rather than
@@ -10,6 +13,12 @@ import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 export default function AuthLayout({ children }: LayoutProps<"/">) {
   return (
     <>
+      {/* Reads the session cookie, so it sits behind its own boundary and the
+          forms stay in the static shell. */}
+      <Suspense fallback={null}>
+        <SignedInRedirect />
+      </Suspense>
+
       <SiteHeader />
 
       <main className="flex-1">
@@ -41,4 +50,10 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
       <SiteFooter />
     </>
   );
+}
+
+async function SignedInRedirect() {
+  await redirectIfSignedIn();
+
+  return null;
 }

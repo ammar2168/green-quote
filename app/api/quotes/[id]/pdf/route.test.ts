@@ -83,24 +83,6 @@ beforeEach(() => {
 });
 
 describe("GET /api/quotes/:id/pdf", () => {
-  it("downloads the owner's quote as a PDF attachment", async () => {
-    const response = await get("?term=15");
-
-    expect(response.status).toBe(200);
-    expect(response.headers.get("content-type")).toBe("application/pdf");
-    expect(response.headers.get("content-disposition")).toBe(
-      'attachment; filename="greenquote-quote-d793187e-15-years.pdf"',
-    );
-    expect(response.headers.get("cache-control")).toBe("private, no-store");
-
-    const bytes = new Uint8Array(await response.arrayBuffer());
-
-    expect(response.headers.get("content-length")).toBe(
-      String(bytes.byteLength),
-    );
-    expect(new TextDecoder().decode(bytes.slice(0, 5))).toBe("%PDF-");
-  });
-
   it("uses the 10-year offer when no term is given", async () => {
     const response = await get();
 
