@@ -2,7 +2,7 @@ import { type SQL, and, count, desc, eq, ilike, max } from "drizzle-orm";
 import { z } from "zod";
 
 import { db } from "@/db";
-import { type UserRole, quotes, users } from "@/db/schema";
+import { type Quote, type UserRole, quotes, users } from "@/db/schema";
 import { type UserFilters, containsPattern } from "@/lib/user-filters";
 
 /**
@@ -73,4 +73,22 @@ export async function findUser(
     .limit(1);
 
   return user;
+}
+
+/**
+ * Any user's quote by id, or undefined. Only for an admin: the user-facing
+ * equivalent is `findQuote`, which is scoped to its owner.
+ */
+export async function findAnyQuote(
+  quoteId: string,
+): Promise<Quote | undefined> {
+  if (!z.uuid().safeParse(quoteId).success) return undefined;
+
+  const [quote] = await db
+    .select()
+    .from(quotes)
+    .where(eq(quotes.id, quoteId))
+    .limit(1);
+
+  return quote;
 }

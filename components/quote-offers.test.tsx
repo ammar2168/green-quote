@@ -1,13 +1,19 @@
 // @vitest-environment jsdom
 import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { calculateQuote } from "@/lib/quote";
 
 import { QuoteOffers } from "./quote-offers";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
+
+const QUOTE_ID = "c9bf4081-c228-413f-bad6-24e769f85162";
 
 /** 40 kW at 75 kWh with $5,000 down: band C, $43,000 financed at 11.9%. */
 const { offers } = calculateQuote({
@@ -36,7 +42,7 @@ function scheduleRows() {
 
 describe("QuoteOffers", () => {
   it("shows all three offers, with the 10-year one selected", () => {
-    render(<QuoteOffers offers={offers} />);
+    render(<QuoteOffers quoteId={QUOTE_ID} offers={offers} />);
 
     expect(offerButton(5).textContent).toContain("$954.34");
     expect(offerButton(10).textContent).toContain("$614.44");
@@ -46,7 +52,7 @@ describe("QuoteOffers", () => {
   });
 
   it("schedules the selected offer year by year, ending at zero", () => {
-    render(<QuoteOffers offers={offers} />);
+    render(<QuoteOffers quoteId={QUOTE_ID} offers={offers} />);
 
     expect(
       screen.getByRole("heading", { name: "Amortization schedule · 10 years" }),
@@ -67,7 +73,7 @@ describe("QuoteOffers", () => {
 
   it("switches the schedule when another offer is chosen", async () => {
     const user = userEvent.setup();
-    render(<QuoteOffers offers={offers} />);
+    render(<QuoteOffers quoteId={QUOTE_ID} offers={offers} />);
 
     await user.click(offerButton(15));
 
@@ -81,7 +87,7 @@ describe("QuoteOffers", () => {
 
   it("shows every month on request, and back", async () => {
     const user = userEvent.setup();
-    render(<QuoteOffers offers={offers} />);
+    render(<QuoteOffers quoteId={QUOTE_ID} offers={offers} />);
 
     await user.click(screen.getByRole("button", { name: "Show every month" }));
 
@@ -104,11 +110,102 @@ describe("QuoteOffers", () => {
       downPaymentCents: 0,
     });
 
-    render(<QuoteOffers offers={small.offers} />);
+    render(<QuoteOffers quoteId={QUOTE_ID} offers={small.offers} />);
 
     const axis = screen.getByRole("img");
 
     expect(within(axis).getByText("$1.5K")).toBeTruthy();
     expect(within(axis).getByText("$750")).toBeTruthy();
+  });
+});
+
+describe("QuoteOffers' PDF download", () => {
+  const downloadButton = () =>
+    screen.getByRole("button", { name: /^Download PDF|^Preparing PDF/ });
+
+  /** Stubs fetch with `respond`, and records every file the page saves. */
+  function stubDownload(respond: () => Promise<Response>) {
+    const requested: string[] = [];
+    const saved: { href: string; download: string }[] = [];
+
+    vi.stubGlobal("fetch", async (url: string) => {
+      requested.push(url);
+      return respond();
+    });
+    vi.stubGlobal("URL", {
+      ...URL,
+      createObjectURL: () => "blob:quote",
+      revokeObjectURL: () => {},
+    });
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(
+      function (this: HTMLAnchorElement) {
+        saved.push({ href: this.href, download: this.download });
+      },
+    );
+
+    return { requested, saved };
+  }
+
+  // A string body: Node's Response does not read jsdom's Blob.
+  const pdf = () =>
+    new Response("%PDF-1.7", {
+      headers: {
+        "Content-Type": "application/pdf",
+        "Content-Disposition": 'attachment; filename="quote-15-years.pdf"',
+      },
+    });
+
+  it("downloads the PDF of the offer on screen", async () => {
+    const user = userEvent.setup();
+    const { requested, saved } = stubDownload(async () => pdf());
+    render(<QuoteOffers quoteId={QUOTE_ID} offers={offers} />);
+
+    await user.click(offerButton(15));
+    await user.click(downloadButton());
+
+    expect(requested).toEqual([`/api/quotes/${QUOTE_ID}/pdf?term=15`]);
+    expect(saved).toEqual([
+      { href: "blob:quote", download: "quote-15-years.pdf" },
+    ]);
+    expect(downloadButton().hasAttribute("disabled")).toBe(false);
+  });
+
+  it("is disabled while the PDF is prepared, so a double click fetches once", async () => {
+    const user = userEvent.setup();
+    let finish: (response: Response) => void = () => {};
+    const { requested } = stubDownload(
+      () => new Promise((resolve) => (finish = resolve)),
+    );
+    render(<QuoteOffers quoteId={QUOTE_ID} offers={offers} />);
+
+    await user.dblClick(downloadButton());
+
+    expect(downloadButton().textContent).toContain("Preparing PDF…");
+    expect(downloadButton().hasAttribute("disabled")).toBe(true);
+    expect(requested).toHaveLength(1);
+
+    finish(pdf());
+
+    expect(await screen.findByText("Download PDF")).toBeTruthy();
+  });
+
+  it("shows why a download failed, and clears it on retry", async () => {
+    const user = userEvent.setup();
+    let status = 401;
+    stubDownload(async () =>
+      status === 401 ? Response.json({}, { status }) : pdf(),
+    );
+    render(<QuoteOffers quoteId={QUOTE_ID} offers={offers} />);
+
+    await user.click(downloadButton());
+
+    expect(screen.getByRole("alert").textContent).toBe(
+      "Your session has ended. Sign in again to download this quote.",
+    );
+
+    status = 200;
+    await user.click(downloadButton());
+
+    expect(screen.getByRole("alert").textContent).toBe("");
   });
 });

@@ -1,18 +1,8 @@
 import type { Quote } from "@/db/schema";
 import { formatCents } from "@/lib/money";
-import {
-  APR_BY_BAND,
-  PRICE_PER_KW_CENTS,
-  type RiskBand,
-} from "@/lib/quote";
+import { APR_BY_BAND, BAND_MEANING, PRICE_PER_KW_CENTS } from "@/lib/quote";
 
 import { QuoteOffers } from "./quote-offers";
-
-const BAND_MEANING: Record<RiskBand, string> = {
-  A: "Band A means 400 kWh or more a month on a system of 6 kW or less.",
-  B: "Band B means 250 kWh or more a month, without band A's 400 kWh on 6 kW or less.",
-  C: "Band C means under 250 kWh a month.",
-};
 
 /**
  * Everything a saved quote says below its heading: the band, the numbers, the
@@ -67,7 +57,7 @@ export function QuoteBreakdown({ quote }: { quote: Quote }) {
         />
       </dl>
 
-      <QuoteOffers offers={quote.offers} />
+      <QuoteOffers quoteId={quote.id} offers={quote.offers} />
 
       <details className="group rounded-card border border-line bg-surface p-5 shadow-card sm:p-6">
         <summary className="cursor-pointer font-semibold">

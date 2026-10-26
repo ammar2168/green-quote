@@ -9,20 +9,25 @@ import {
   yearlySchedule,
 } from "@/lib/amortization";
 import { formatCents } from "@/lib/money";
-import type { OfferTermYears, QuoteOffer } from "@/lib/quote";
+import { type OfferTermYears, type QuoteOffer, defaultOffer } from "@/lib/quote";
 
 import { AmortizationChart } from "./amortization-chart";
+import { DownloadQuotePdfButton } from "./download-quote-pdf-button";
 
 /**
  * The three offers, and the amortization schedule of whichever is selected.
  * The schedules are rebuilt in the browser from the saved offers rather than
  * stored: they follow from the offer exactly, and run to 180 rows.
  */
-export function QuoteOffers({ offers }: { offers: QuoteOffer[] }) {
-  // The middle term is the usual starting point: neither the highest monthly
-  // payment nor the most interest.
+export function QuoteOffers({
+  quoteId,
+  offers,
+}: {
+  quoteId: string;
+  offers: QuoteOffer[];
+}) {
   const [selectedTerm, setSelectedTerm] = useState<OfferTermYears>(
-    offers[Math.floor(offers.length / 2)].termYears,
+    defaultOffer(offers).termYears,
   );
 
   const schedules = offers.map((offer) => ({
@@ -99,7 +104,11 @@ export function QuoteOffers({ offers }: { offers: QuoteOffer[] }) {
         </div>
       </section>
 
-      <Schedule offer={selected.offer} months={selected.months} />
+      <Schedule
+        quoteId={quoteId}
+        offer={selected.offer}
+        months={selected.months}
+      />
     </>
   );
 }
@@ -114,9 +123,11 @@ function OfferFigure({ label, value }: { label: string; value: string }) {
 }
 
 function Schedule({
+  quoteId,
   offer,
   months,
 }: {
+  quoteId: string;
   offer: QuoteOffer;
   months: AmortizationRow[];
 }) {
@@ -129,13 +140,19 @@ function Schedule({
       aria-labelledby="schedule-heading"
       className="rounded-card border border-line bg-surface p-5 shadow-card sm:p-8"
     >
-      <h2 id="schedule-heading" className="text-lg font-semibold">
-        Amortization schedule · {offer.termYears} years
-      </h2>
-      <p className="mt-1 text-sm text-muted">
-        {months.length} payments of {formatCents(offer.monthlyPaymentCents)}.
-        Early payments are mostly interest; later ones mostly principal.
-      </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h2 id="schedule-heading" className="text-lg font-semibold">
+            Amortization schedule · {offer.termYears} years
+          </h2>
+          <p className="mt-1 text-sm text-muted">
+            {months.length} payments of{" "}
+            {formatCents(offer.monthlyPaymentCents)}. Early payments are mostly
+            interest; later ones mostly principal.
+          </p>
+        </div>
+        <DownloadQuotePdfButton quoteId={quoteId} termYears={offer.termYears} />
+      </div>
 
       <div className="mt-6 grid gap-8 lg:grid-cols-2">
         <AmortizationChart years={years} />

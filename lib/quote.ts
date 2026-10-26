@@ -25,6 +25,16 @@ export const APR_BY_BAND: Record<RiskBand, number> = {
   C: 11.9,
 };
 
+/**
+ * The band thresholds in prose, for the quote page and its PDF. Update these
+ * alongside `riskBand()`.
+ */
+export const BAND_MEANING: Record<RiskBand, string> = {
+  A: "Band A means 400 kWh or more a month on a system of 6 kW or less.",
+  B: "Band B means 250 kWh or more a month, without band A's 400 kWh on 6 kW or less.",
+  C: "Band C means under 250 kWh a month.",
+};
+
 export type QuoteInput = {
   monthlyConsumptionKwh: number;
   systemSizeKw: number;
@@ -67,6 +77,17 @@ export function riskBand(
   if (monthlyConsumptionKwh >= 250) return "B";
 
   return "C";
+}
+
+/**
+ * The offer a quote opens on: the middle term, neither the highest monthly
+ * payment nor the most interest. Shared by the quote page and its PDF, so a
+ * PDF downloaded without a term matches what the page first shows.
+ */
+export function defaultOffer<Offer extends { termYears: number }>(
+  offers: readonly Offer[],
+): Offer {
+  return offers[Math.floor(offers.length / 2)];
 }
 
 /**

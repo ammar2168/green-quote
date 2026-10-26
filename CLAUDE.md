@@ -36,6 +36,7 @@ Code flows one way: `app/` (routes) → `components/` (UI) and `server/` (DB rea
 | `lib/` | Pure, React-free modules shared by server and browser (`quote.ts`, `money.ts`, `amortization.ts`, `quote-schema.ts`), plus server-only helpers (`session.ts`, `current-user.ts`, `password.ts`). |
 | `db/` | `schema.ts` (the single source of truth for tables), `index.ts` (pool + `db`), `migrations/` (drizzle-kit output). `db/init/` is mounted as Postgres's init-script directory. |
 | `scripts/` | `tsx` CLI scripts (`seed-admin.ts`). |
+| `assets/fonts/` | Geist TTFs (OFL) embedded in the quote PDF, read by `server/quote-pdf.ts`. The standard PDF fonts only encode Windows-1252, so a name like "Łukasz" would make them throw. |
 
 Tests sit next to the file they test as `*.test.ts(x)`.
 
@@ -53,6 +54,7 @@ Tests sit next to the file they test as `*.test.ts(x)`.
 | `/admin/users/[id]` and `.../quotes/[quoteId]` | admin | Read-only views reusing `QuotesTable` / `QuoteBreakdown`. |
 | `POST /api/quotes` | user | 201 + `Location`; 400 / 401 / 413 / 415. |
 | `DELETE /api/quotes/[id]` | user (owner) | 204; 401; 404. |
+| `GET /api/quotes/[id]/pdf?term=` | owner or admin | The quote as an A4 PDF (`lib/quote-pdf.ts`) with the chosen offer's schedule; no term means the 10-year one. 200 attachment; 400 `invalid_term`; 401; 404. |
 
 There is no `middleware.ts` / `proxy.ts`. Each page and handler guards itself.
 
@@ -63,7 +65,7 @@ There is no `middleware.ts` / `proxy.ts`. Each page and handler guards itself.
 - Principal = price − down payment, and must be > 0.
 - Risk band: A if kWh ≥ 400 **and** kW ≤ 6; else B if kWh ≥ 250; else C. APR is A 6.9, B 8.9, C 11.9 (`APR_BY_BAND`, stored as a percentage number: `6.9` means 6.9%).
 - Offers: one per `offerTermYears` (5, 10, 15), with monthly payment `P·r / (1 − (1+r)^−n)` rounded to the cent once at the end. `monthlyPaymentCents` throws on APR ≤ 0 by design, so a 0% band also needs a zero-rate branch.
-- UI copy that states these numbers reads the constants (`APR_BY_BAND`, `PRICE_PER_KW_CENTS`, `offerTermYears`), so changing the model updates the copy. `BAND_MEANING` in `components/quote-breakdown.tsx` and `bandCopy` in `app/page.tsx` describe the band thresholds in prose; update them alongside `riskBand()`.
+- UI copy that states these numbers reads the constants (`APR_BY_BAND`, `PRICE_PER_KW_CENTS`, `offerTermYears`), so changing the model updates the copy. `BAND_MEANING` in `lib/quote.ts` (used by the quote page and its PDF) and `bandCopy` in `app/page.tsx` describe the band thresholds in prose; update them alongside `riskBand()`.
 
 **Money is integer US cents** everywhere it is stored, compared or summed. Column and field names end in `_cents` / `Cents`. Convert to dollars only at the edges: `toCents` when parsing a request, `fromCents` in `toQuoteResponse`, and `formatCents` (optionally `{ wholeDollars: true }`) for display. kWh, kW and APR are `numeric` columns with `mode: "number"`, which keeps them plain JS numbers.
 
@@ -87,7 +89,7 @@ There is no `middleware.ts` / `proxy.ts`. Each page and handler guards itself.
 - Read bodies with `readJson(request)`. It requires `application/json` (this doubles as the CSRF guard), caps the body at 16 KB, and returns `{ ok, body } | { ok: false, response }`.
 - Check auth first, before reading the body.
 - Responses serialise with `toQuoteResponse` (`server/quotes.ts`): dollars, ISO dates, and `inputs` / `derived` / `offers` groups.
-- Client callers live in `lib/` as React-free functions that take an injectable `fetchImpl` (`submitQuote`, `requestQuoteDeletion`) and return a discriminated-union result, with a 401-specific message and a generic network-failure message. `readApiError` tolerates non-JSON bodies.
+- Client callers live in `lib/` as React-free functions that take an injectable `fetchImpl` (`submitQuote`, `requestQuoteDeletion`, `requestQuotePdf`) and return a discriminated-union result, with a 401-specific message and a generic network-failure message. `readApiError` tolerates non-JSON bodies.
 
 ## Next.js 16 patterns used here
 
@@ -156,8 +158,11 @@ Enums and shared literal unions are declared as `as const` arrays (`userRoles`, 
 - Name constants in `UPPER_SNAKE` with units in the name (`SESSION_DURATION_MS`, `MAX_BODY_BYTES`, `PRICE_PER_KW_CENTS`). Write numeric literals with separators (`1200_00`, `100_000`).
 - Write UI copy and messages in plain, friendly sentences ending in a full stop. Use British spelling in code comments ("recognised", "serialise"). User-facing currency is US dollars.
 
+## Git workflow
+
+- Always squash merge a branch into `main` (`git merge --squash <branch>`, then one commit), so each feature lands as a single commit. Never use a fast-forward or merge-commit merge.
+
 ## Known gaps
 
-- The landing page promises "a PDF to download" for each quote. No PDF export exists yet.
 - `/dashboard` is an unused placeholder from before quotes existed.
 - There are no profile editing, password reset or admin write actions (admin is read-only), and no pagination on the lists.
