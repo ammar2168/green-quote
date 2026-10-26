@@ -1,12 +1,6 @@
-import Link from "next/link";
-
 import { HeroArt } from "@/components/hero-art";
 import { LogoMark } from "@/components/logo";
-import {
-  SiteFooter,
-  SiteHeader,
-  secondaryButton,
-} from "@/components/site-chrome";
+import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 
 /**
  * Shared by /login and /signup. The hero and card frame live here rather than
@@ -16,13 +10,7 @@ import {
 export default function AuthLayout({ children }: LayoutProps<"/">) {
   return (
     <>
-      <SiteHeader
-        action={
-          <Link href="/login" className={secondaryButton}>
-            Sign in
-          </Link>
-        }
-      />
+      <SiteHeader />
 
       <main className="flex-1">
         <div className="mx-auto grid w-full max-w-5xl gap-6 px-4 py-8 sm:py-16 lg:grid-cols-[1fr_28rem] lg:items-stretch lg:gap-8">
