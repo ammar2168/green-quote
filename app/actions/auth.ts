@@ -18,6 +18,9 @@ const MAX_NAME_LENGTH = 200;
 /** Where both sign-up and sign-in land. */
 const AFTER_AUTH = "/quotes/new";
 
+/** Where an admin lands on sign-in instead. */
+const AFTER_ADMIN_AUTH = "/admin/users";
+
 /**
  * A real hash of a value nobody knows, verified against when no user matches
  * so that a wrong email costs the same scrypt time as a wrong password.
@@ -125,7 +128,11 @@ export async function login(
   // Matched case-insensitively against the same expression as the
   // users_email_lower_unique index, so the index serves the lookup.
   const [user] = await db
-    .select({ id: users.id, passwordHash: users.passwordHash })
+    .select({
+      id: users.id,
+      passwordHash: users.passwordHash,
+      role: users.role,
+    })
     .from(users)
     .where(sql`lower(${users.email}) = lower(${email})`)
     .limit(1);
@@ -142,7 +149,7 @@ export async function login(
 
   await createSession(user.id);
 
-  redirect(AFTER_AUTH);
+  redirect(user.role === "admin" ? AFTER_ADMIN_AUTH : AFTER_AUTH);
 }
 
 export async function logout(): Promise<void> {

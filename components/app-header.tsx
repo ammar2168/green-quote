@@ -6,11 +6,20 @@ import { requireUser } from "@/lib/current-user";
 import { AppNav, type NavSection } from "./app-nav";
 import { SiteHeader } from "./site-chrome";
 
-/** The header of every signed-in page: the main nav and the account menu. */
-export function AppHeader({ current }: { current?: NavSection }) {
+/**
+ * The header of every signed-in page: the main nav and the account menu.
+ * `admin` swaps the nav for the admin pages' own.
+ */
+export function AppHeader({
+  current,
+  admin = false,
+}: {
+  current?: NavSection;
+  admin?: boolean;
+}) {
   return (
     <SiteHeader
-      nav={<AppNav current={current} />}
+      nav={<AppNav current={current} admin={admin} />}
       action={
         // Reads the session cookie, so it streams in behind a boundary.
         <Suspense fallback={<div className="h-9 w-20 sm:w-40" />}>

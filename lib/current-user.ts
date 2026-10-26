@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 
 import { db } from "@/db";
@@ -47,6 +47,18 @@ export async function requireUser(): Promise<CurrentUser> {
   const user = await getCurrentUser();
 
   if (!user) redirect("/login");
+
+  return user;
+}
+
+/**
+ * For admin-only pages. A signed-in non-admin gets a 404 rather than a 403, so
+ * the admin pages do not announce that they exist.
+ */
+export async function requireAdmin(): Promise<CurrentUser> {
+  const user = await requireUser();
+
+  if (user.role !== "admin") notFound();
 
   return user;
 }

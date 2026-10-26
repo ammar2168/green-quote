@@ -6,7 +6,9 @@ import { login, logout } from "./auth";
 
 // The rows the mocked `db.select()...limit()` chain resolves with.
 const { selectResult } = vi.hoisted(() => ({
-  selectResult: { rows: [] as { id: string; passwordHash: string }[] },
+  selectResult: {
+    rows: [] as { id: string; passwordHash: string; role: "user" | "admin" }[],
+  },
 }));
 
 vi.mock("@/db", () => {
@@ -35,7 +37,11 @@ const { createSession, deleteSession } = await import("@/lib/session");
 const { redirect } = await import("next/navigation");
 
 const PASSWORD = "correct horse battery";
-const USER = { id: "user-1", passwordHash: await hashPassword(PASSWORD) };
+const USER = {
+  id: "user-1",
+  passwordHash: await hashPassword(PASSWORD),
+  role: "user" as const,
+};
 
 function form(fields: Record<string, string>): FormData {
   const formData = new FormData();
@@ -62,6 +68,17 @@ describe("login", () => {
 
     expect(createSession).toHaveBeenCalledWith(USER.id);
     expect(redirect).toHaveBeenCalledWith("/quotes/new");
+  });
+
+  it("sends an admin to the users list instead", async () => {
+    selectResult.rows = [{ ...USER, role: "admin" }];
+
+    await expect(
+      login(undefined, form({ email: "a@example.com", password: PASSWORD })),
+    ).rejects.toThrow("NEXT_REDIRECT");
+
+    expect(createSession).toHaveBeenCalledWith(USER.id);
+    expect(redirect).toHaveBeenCalledWith("/admin/users");
   });
 
   it("rejects a wrong password", async () => {

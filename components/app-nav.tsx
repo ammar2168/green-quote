@@ -1,17 +1,31 @@
 import Link from "next/link";
 
-export type NavSection = "new" | "quotes";
+export type NavSection = "new" | "quotes" | "users";
 
-const links: { section: NavSection; href: string; label: string }[] = [
+type NavLink = { section: NavSection; href: string; label: string };
+
+const userLinks: NavLink[] = [
   { section: "new", href: "/quotes/new", label: "New quote" },
   { section: "quotes", href: "/quotes", label: "My quotes" },
+];
+
+const adminLinks: NavLink[] = [
+  { section: "users", href: "/admin/users", label: "Users" },
 ];
 
 /**
  * Each page names its own section, rather than the nav reading the URL, which
  * would make it a Client Component that cannot prerender.
  */
-export function AppNav({ current }: { current?: NavSection }) {
+export function AppNav({
+  current,
+  admin = false,
+}: {
+  current?: NavSection;
+  admin?: boolean;
+}) {
+  const links = admin ? adminLinks : userLinks;
+
   return (
     <nav aria-label="Main" className="flex items-center gap-1">
       {links.map((link) => (
