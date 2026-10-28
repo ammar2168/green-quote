@@ -86,7 +86,9 @@ Option B only: leave the `pnpm dev` terminal open while you use the app.
 
 | Route                            | What it does                                    |
 | -------------------------------- | ----------------------------------------------- |
+| `GET /api/quotes`                | List quotes (an admin sees everyone's)          |
 | `POST /api/quotes`               | Create and save a quote                         |
+| `GET /api/quotes/{id}`           | Get a quote (yours, or any for an admin)        |
 | `DELETE /api/quotes/{id}`        | Delete one of your quotes                       |
 | `GET /api/quotes/{id}/pdf?term=` | Download a quote as a PDF (`term`: 5, 10 or 15) |
 | `GET /api/health`                | Check the app and database are up               |

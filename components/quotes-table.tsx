@@ -1,26 +1,30 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import type { Quote } from "@/db/schema";
 import { formatQuoteDate } from "@/lib/format";
-import { formatCents } from "@/lib/money";
+import { formatDollars } from "@/lib/money";
+import type { QuoteResponse } from "@/lib/quote-response";
 
 /**
- * A list of quotes, newest first as given. Shared by "My quotes" and the
- * admin's view of one user, which differ only in where a row links to.
+ * A list of quotes, newest first as given, in the shape `GET /api/quotes`
+ * returns. Shared by "My quotes" and the admin's lists, which differ in where
+ * a row links to and whether it names the customer.
  */
 export function QuotesTable({
   quotes,
   caption,
+  showCustomer = false,
   quoteHref,
   rowActions,
   empty,
 }: {
-  quotes: Quote[];
+  quotes: QuoteResponse[];
   caption: string;
-  quoteHref: (quoteId: string) => string;
+  /** Adds a column naming whose quote it is, for a list that mixes users. */
+  showCustomer?: boolean;
+  quoteHref: (quote: QuoteResponse) => string;
   /** Extra controls beside "View" — only the owner's own list has any. */
-  rowActions?: (quote: Quote) => ReactNode;
+  rowActions?: (quote: QuoteResponse) => ReactNode;
   /** Shown instead of the table when there are no quotes. */
   empty: ReactNode;
 }) {
@@ -37,6 +41,11 @@ export function QuotesTable({
             <th scope="col" className="px-4 py-3 font-medium sm:px-6">
               Date
             </th>
+            {showCustomer && (
+              <th scope="col" className="px-4 py-3 font-medium">
+                Customer
+              </th>
+            )}
             <th scope="col" className="px-4 py-3 font-medium">
               Address
             </th>
@@ -60,29 +69,42 @@ export function QuotesTable({
               <td className="px-4 py-3 whitespace-nowrap sm:px-6">
                 {formatQuoteDate(quote.createdAt)}
               </td>
+              {showCustomer && (
+                <td className="max-w-56 px-4 py-3">
+                  <span className="block truncate">
+                    {quote.inputs.fullName}
+                  </span>
+                  <span className="block truncate text-muted">
+                    {quote.inputs.email}
+                  </span>
+                </td>
+              )}
               <td className="max-w-64 truncate px-4 py-3 text-muted">
-                {quote.address}
+                {quote.inputs.address}
               </td>
               <td className="px-4 py-3 text-right whitespace-nowrap tabular-nums">
-                {quote.systemSizeKw} kW
+                {quote.inputs.systemSizeKw} kW
               </td>
               <td className="px-4 py-3 text-right whitespace-nowrap tabular-nums">
-                {formatCents(quote.systemPriceCents, { wholeDollars: true })}
+                {formatDollars(quote.derived.systemPrice, {
+                  wholeDollars: true,
+                })}
               </td>
               <td className="px-4 py-3 whitespace-nowrap">
-                {quote.riskBand}{" "}
-                <span className="text-muted">· {quote.apr}% APR</span>
+                {quote.derived.riskBand}{" "}
+                <span className="text-muted">· {quote.derived.apr}% APR</span>
               </td>
               <td className="px-4 py-3 text-right sm:px-6">
                 <div className="flex items-center justify-end gap-4">
                   <Link
-                    href={quoteHref(quote.id)}
+                    href={quoteHref(quote)}
                     className="font-semibold whitespace-nowrap text-brand hover:text-brand-strong"
                   >
                     View
                     <span className="sr-only">
                       {" "}
                       quote from {formatQuoteDate(quote.createdAt)}
+                      {showCustomer && ` for ${quote.inputs.fullName}`}
                     </span>
                   </Link>
                   {rowActions?.(quote)}

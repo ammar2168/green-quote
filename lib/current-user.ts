@@ -4,7 +4,7 @@ import { cache } from "react";
 
 import { db } from "@/db";
 import { users } from "@/db/schema";
-import { homePathFor } from "@/lib/home-path";
+import { ADMIN_HOME_PATH, homePathFor } from "@/lib/home-path";
 import { setLogContext } from "@/lib/logger";
 
 import { readSession } from "./session";
@@ -77,6 +77,19 @@ export async function requireAdmin(): Promise<CurrentUser> {
   const user = await requireUser();
 
   if (user.role !== "admin") notFound();
+
+  return user;
+}
+
+/**
+ * For the customer pages under `/quotes`. An admin's own "My quotes" would
+ * sit empty beside the quotes they actually look after, so they are sent to
+ * the admin's list of every user's quotes instead.
+ */
+export async function requireCustomer(): Promise<CurrentUser> {
+  const user = await requireUser();
+
+  if (user.role === "admin") redirect(ADMIN_HOME_PATH);
 
   return user;
 }

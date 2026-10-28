@@ -14,6 +14,7 @@ import {
   type QuoteOffer,
   defaultOffer,
 } from "@/lib/quote";
+import { type OfferResponse, offerFromResponse } from "@/lib/quote-response";
 
 import { AmortizationChart } from "./amortization-chart";
 import { DownloadQuotePdfButton } from "./download-quote-pdf-button";
@@ -21,15 +22,17 @@ import { DownloadQuotePdfButton } from "./download-quote-pdf-button";
 /**
  * The three offers, and the amortization schedule of whichever is selected.
  * The schedules are rebuilt in the browser from the saved offers rather than
- * stored: they follow from the offer exactly, and run to 180 rows.
+ * stored: they follow from the offer exactly, and run to 180 rows. Takes the
+ * offers as the API returns them (dollars) and works in cents from there.
  */
 export function QuoteOffers({
   quoteId,
-  offers,
+  offers: offerResponses,
 }: {
   quoteId: string;
-  offers: QuoteOffer[];
+  offers: OfferResponse[];
 }) {
+  const offers = offerResponses.map(offerFromResponse);
   const [selectedTerm, setSelectedTerm] = useState<OfferTermYears>(
     defaultOffer(offers).termYears,
   );

@@ -3,7 +3,9 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { calculateQuote } from "@/lib/quote";
+import { fromCents } from "@/lib/money";
+import { type QuoteInput, calculateQuote } from "@/lib/quote";
+import type { OfferResponse } from "@/lib/quote-response";
 
 import { QuoteOffers } from "./quote-offers";
 
@@ -15,8 +17,18 @@ afterEach(() => {
 
 const QUOTE_ID = "c9bf4081-c228-413f-bad6-24e769f85162";
 
+/** The offers for `input` as the API returns them, in dollars. */
+function offersFor(input: QuoteInput): OfferResponse[] {
+  return calculateQuote(input).offers.map((offer) => ({
+    termYears: offer.termYears,
+    apr: offer.apr,
+    principalUsed: fromCents(offer.principalUsedCents),
+    monthlyPayment: fromCents(offer.monthlyPaymentCents),
+  }));
+}
+
 /** 40 kW at 75 kWh with $5,000 down: band C, $43,000 financed at 11.9%. */
-const { offers } = calculateQuote({
+const offers = offersFor({
   monthlyConsumptionKwh: 75,
   systemSizeKw: 40,
   downPaymentCents: 500_000,
@@ -104,13 +116,13 @@ describe("QuoteOffers", () => {
 
   it("tops the chart's axis just above the largest year", () => {
     // 7 kW, no down payment: about $1,271 a year over 10 years.
-    const small = calculateQuote({
+    const small = offersFor({
       monthlyConsumptionKwh: 300,
       systemSizeKw: 7,
       downPaymentCents: 0,
     });
 
-    render(<QuoteOffers quoteId={QUOTE_ID} offers={small.offers} />);
+    render(<QuoteOffers quoteId={QUOTE_ID} offers={small} />);
 
     const axis = screen.getByRole("img");
 

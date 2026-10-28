@@ -70,7 +70,7 @@ describe("login", () => {
     expect(redirect).toHaveBeenCalledWith("/quotes/new");
   });
 
-  it("sends an admin to the users list instead", async () => {
+  it("sends an admin to every user's quotes instead", async () => {
     selectResult.rows = [{ ...USER, role: "admin" }];
 
     await expect(
@@ -78,7 +78,7 @@ describe("login", () => {
     ).rejects.toThrow("NEXT_REDIRECT");
 
     expect(createSession).toHaveBeenCalledWith(USER.id);
-    expect(redirect).toHaveBeenCalledWith("/admin/users");
+    expect(redirect).toHaveBeenCalledWith("/admin/quotes");
   });
 
   it("rejects a wrong password", async () => {

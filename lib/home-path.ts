@@ -4,7 +4,7 @@ import type { UserRole } from "@/db/schema";
 export const USER_HOME_PATH = "/quotes/new";
 
 /** Where an admin lands instead. */
-export const ADMIN_HOME_PATH = "/admin/users";
+export const ADMIN_HOME_PATH = "/admin/quotes";
 
 /**
  * A signed-in user's starting page. Shared by the sign-in action and by

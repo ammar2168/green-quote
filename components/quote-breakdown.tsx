@@ -1,15 +1,18 @@
-import type { Quote } from "@/db/schema";
-import { formatCents } from "@/lib/money";
+import { formatCents, formatDollars } from "@/lib/money";
 import { APR_BY_BAND, BAND_MEANING, PRICE_PER_KW_CENTS } from "@/lib/quote";
+import type { QuoteResponse } from "@/lib/quote-response";
 
 import { QuoteOffers } from "./quote-offers";
 
 /**
  * Everything a saved quote says below its heading: the band, the numbers, the
- * offers and how they were worked out. Shared by the user's own quote page and
- * the admin's view of it.
+ * offers and how they were worked out, rendered from the shape
+ * `GET /api/quotes/{id}` returns. Shared by the user's own quote page and the
+ * admin's view of it.
  */
-export function QuoteBreakdown({ quote }: { quote: Quote }) {
+export function QuoteBreakdown({ quote }: { quote: QuoteResponse }) {
+  const { inputs, derived } = quote;
+
   return (
     <>
       <section
@@ -22,13 +25,13 @@ export function QuoteBreakdown({ quote }: { quote: Quote }) {
             id="band-heading"
             className="flex flex-wrap items-center gap-2 font-semibold sm:text-lg"
           >
-            Pre-qualified: risk band {quote.riskBand}
+            Pre-qualified: risk band {derived.riskBand}
             <span className="rounded-full bg-brand-soft px-2 py-0.5 text-xs font-semibold text-brand-strong">
-              {quote.apr}% APR
+              {derived.apr}% APR
             </span>
           </h2>
           <p className="mt-1 text-sm text-muted">
-            {BAND_MEANING[quote.riskBand]} Choose one of the three installment
+            {BAND_MEANING[derived.riskBand]} Choose one of the three installment
             offers below to see how it is repaid.
           </p>
         </div>
@@ -37,23 +40,23 @@ export function QuoteBreakdown({ quote }: { quote: Quote }) {
       <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
         <Stat
           label="System price"
-          value={formatCents(quote.systemPriceCents, { wholeDollars: true })}
-          note={`${quote.systemSizeKw} kW × ${formatCents(PRICE_PER_KW_CENTS, { wholeDollars: true })}`}
+          value={formatDollars(derived.systemPrice, { wholeDollars: true })}
+          note={`${inputs.systemSizeKw} kW × ${formatCents(PRICE_PER_KW_CENTS, { wholeDollars: true })}`}
         />
         <Stat
           label="Down payment"
-          value={formatCents(quote.downPaymentCents, { wholeDollars: true })}
+          value={formatDollars(inputs.downPayment, { wholeDollars: true })}
           note="paid upfront"
         />
         <Stat
           label="To finance"
-          value={formatCents(quote.principalCents, { wholeDollars: true })}
+          value={formatDollars(derived.principal, { wholeDollars: true })}
           note="price − down payment"
         />
         <Stat
           label="Monthly consumption"
-          value={`${quote.monthlyConsumptionKwh} kWh`}
-          note={`${quote.systemSizeKw} kW system`}
+          value={`${inputs.monthlyConsumptionKwh} kWh`}
+          note={`${inputs.systemSizeKw} kW system`}
         />
       </dl>
 

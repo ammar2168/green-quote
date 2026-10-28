@@ -1,6 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { deleteQuote, findQuote, listQuotes } from "./quotes";
+import type { Quote } from "@/db/schema";
+import { calculateQuote } from "@/lib/quote";
+import { toQuoteResponse } from "@/lib/quote-response";
+
+import {
+  deleteQuote,
+  findQuote,
+  findQuoteResponse,
+  listQuoteResponses,
+} from "./quotes";
 
 // What the next query resolves with, and how many queries actually ran.
 const { state } = vi.hoisted(() => ({
@@ -27,6 +36,27 @@ vi.mock("@/db", () => {
 
 const QUOTE_ID = "c9bf4081-c228-413f-bad6-24e769f85162";
 
+/** A saved quote row, as the query would return it. */
+function quoteRow(id: string): Quote {
+  const input = {
+    monthlyConsumptionKwh: 500,
+    systemSizeKw: 5,
+    downPaymentCents: 1000_00,
+  };
+
+  return {
+    id,
+    userId: "user-1",
+    fullName: "Ada Lovelace",
+    email: "ada@example.com",
+    address: "12 St James's Square, London",
+    ...input,
+    ...calculateQuote(input),
+    createdAt: new Date("2026-10-25T12:00:00Z"),
+    updatedAt: new Date("2026-10-25T12:00:00Z"),
+  };
+}
+
 beforeEach(() => {
   state.rows = [];
   state.queries = 0;
@@ -50,11 +80,37 @@ describe("findQuote", () => {
   });
 });
 
-describe("listQuotes", () => {
-  it("returns every row, as ordered by the query", async () => {
-    state.rows = [{ id: "b" }, { id: "a" }];
+describe("findQuoteResponse", () => {
+  it("returns the quote as the API answers it", async () => {
+    state.rows = [quoteRow(QUOTE_ID)];
 
-    expect(await listQuotes("user-1")).toEqual([{ id: "b" }, { id: "a" }]);
+    expect(await findQuoteResponse("user-1", QUOTE_ID)).toEqual(
+      toQuoteResponse(quoteRow(QUOTE_ID)),
+    );
+  });
+
+  it("is undefined when no quote matches — missing, or another user's", async () => {
+    expect(await findQuoteResponse("user-1", QUOTE_ID)).toBeUndefined();
+  });
+
+  it("does not query for an id that is not a uuid", async () => {
+    expect(await findQuoteResponse("user-1", "not-a-uuid")).toBeUndefined();
+    expect(state.queries).toBe(0);
+  });
+});
+
+describe("listQuoteResponses", () => {
+  it("returns every row as the API answers it, in the query's order", async () => {
+    state.rows = [quoteRow("b"), quoteRow("a")];
+
+    const quotes = await listQuoteResponses("user-1");
+
+    expect(quotes.map((quote) => quote.id)).toEqual(["b", "a"]);
+    expect(quotes[0]).toEqual(toQuoteResponse(quoteRow("b")));
+  });
+
+  it("is empty when the user has no quotes", async () => {
+    expect(await listQuoteResponses("user-1")).toEqual([]);
   });
 });
 

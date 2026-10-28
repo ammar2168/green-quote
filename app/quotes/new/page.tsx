@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { AppHeader } from "@/components/app-header";
 import { QuoteForm } from "@/components/quote-form";
 import { SiteFooter } from "@/components/site-chrome";
-import { requireUser } from "@/lib/current-user";
+import { requireCustomer } from "@/lib/current-user";
 
 export const metadata: Metadata = {
   title: "New quote",
@@ -39,7 +39,7 @@ export default function NewQuotePage() {
 }
 
 async function PrefilledQuoteForm() {
-  const user = await requireUser();
+  const user = await requireCustomer();
 
   return (
     <QuoteForm defaults={{ fullName: user.fullName, email: user.email }} />

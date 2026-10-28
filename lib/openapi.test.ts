@@ -1,16 +1,13 @@
 import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join, sep } from "node:path";
 
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import { calculateQuote } from "@/lib/quote";
+import { toQuoteResponse } from "@/lib/quote-response";
 import { quoteRequestSchema } from "@/lib/quote-schema";
-import { toQuoteResponse } from "@/server/quotes";
 
 import { exampleQuoteResponse, openApiDocument } from "./openapi";
-
-// `toQuoteResponse` lives beside the queries; it never touches the database.
-vi.mock("@/db", () => ({ db: {} }));
 
 const API_DIR = join(import.meta.dirname, "..", "app", "api");
 
@@ -137,7 +134,7 @@ describe("openApiDocument", () => {
     expect(
       toQuoteResponse({
         id: exampleQuoteResponse.id,
-        userId: "user-1",
+        userId: exampleQuoteResponse.userId,
         ...request,
         ...calculateQuote(request),
         createdAt: new Date(exampleQuoteResponse.createdAt),

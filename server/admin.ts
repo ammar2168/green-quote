@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { db } from "@/db";
 import { type Quote, type UserRole, quotes, users } from "@/db/schema";
+import { type QuoteResponse, toQuoteResponse } from "@/lib/quote-response";
 import { type UserFilters, containsPattern } from "@/lib/user-filters";
 
 /**
@@ -89,4 +90,33 @@ export async function findAnyQuote(
     .limit(1);
 
   return quote;
+}
+
+/** `findAnyQuote`, as the API returns it. */
+export async function findAnyQuoteResponse(
+  quoteId: string,
+): Promise<QuoteResponse | undefined> {
+  const quote = await findAnyQuote(quoteId);
+
+  return quote && toQuoteResponse(quote);
+}
+
+/**
+ * Every user's quotes as the API returns them, newest first, or only one
+ * user's when `userId` is given. Only for an admin: the user-facing
+ * equivalent is `listQuoteResponses`, which is scoped to its owner.
+ */
+export async function listAllQuoteResponses({
+  userId,
+}: { userId?: string } = {}): Promise<QuoteResponse[]> {
+  // A malformed id matches nobody, and Postgres would throw on it.
+  if (userId !== undefined && !z.uuid().safeParse(userId).success) return [];
+
+  const rows = await db
+    .select()
+    .from(quotes)
+    .where(userId === undefined ? undefined : eq(quotes.userId, userId))
+    .orderBy(desc(quotes.createdAt));
+
+  return rows.map(toQuoteResponse);
 }

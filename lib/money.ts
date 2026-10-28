@@ -30,3 +30,14 @@ export function formatCents(
     ...(wholeDollars && { maximumFractionDigits: 0 }),
   });
 }
+
+/**
+ * `formatCents` for a dollar amount read from an API response. Converts to
+ * cents first, so both render identically.
+ */
+export function formatDollars(
+  dollars: number,
+  options?: { wholeDollars?: boolean },
+): string {
+  return formatCents(toCents(dollars), options);
+}

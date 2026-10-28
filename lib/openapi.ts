@@ -30,6 +30,8 @@ const SESSION_COOKIE = "session";
 
 const EXAMPLE_ID = "c9bf4081-c228-413f-bad6-24e769f85162";
 
+const EXAMPLE_USER_ID = "5f0e7a52-1b8d-4c1e-9a43-2d6f8b0c7e19";
+
 const exampleRequest = {
   fullName: "Ada Lovelace",
   email: "ada@example.com",
@@ -47,6 +49,7 @@ const exampleResult = calculateQuote({
 /** What `toQuoteResponse` returns for `exampleRequest`. */
 export const exampleQuoteResponse = {
   id: EXAMPLE_ID,
+  userId: EXAMPLE_USER_ID,
   createdAt: "2026-10-25T12:00:00.000Z",
   currency: CURRENCY,
   inputs: exampleRequest,
@@ -153,6 +156,11 @@ const notFound = errorResponse(
   "That quote does not exist.",
 );
 
+/** Quote reads answer with one user's data, so no shared cache may keep them. */
+const privateNoStore = {
+  "Cache-Control": { schema: { type: "string", const: "private, no-store" } },
+};
+
 const internalError = errorResponse(
   "An unexpected failure. Details are logged, never returned.",
   "internal_error",
@@ -228,7 +236,10 @@ export function openApiDocument() {
       ].join("\n"),
     },
     tags: [
-      { name: "Quotes", description: "Create, delete and download quotes." },
+      {
+        name: "Quotes",
+        description: "Create, list, read, delete and download quotes.",
+      },
       { name: "Health", description: "Whether the app can serve requests." },
     ],
     security: [{ sessionCookie: [] }],
@@ -270,6 +281,49 @@ export function openApiDocument() {
         },
       },
       "/api/quotes": {
+        get: {
+          tags: ["Quotes"],
+          operationId: "listQuotes",
+          summary: "List quotes",
+          description:
+            "Newest first. A user gets the quotes they have saved; an admin gets every user's, which `userId` narrows to one user. Wrapped in an object so pagination can be added later without breaking callers.",
+          parameters: [
+            {
+              name: "userId",
+              in: "query",
+              required: false,
+              description:
+                "Admins only: list just this user's quotes. A user may pass only their own id.",
+              schema: { type: "string", format: "uuid" },
+              example: EXAMPLE_USER_ID,
+            },
+          ],
+          responses: {
+            "200": {
+              description:
+                "The user's quotes; an empty list when they have none.",
+              headers: privateNoStore,
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/QuoteList" },
+                  example: { quotes: [exampleQuoteResponse] },
+                },
+              },
+            },
+            "400": errorResponse(
+              "`userId` is not a UUID.",
+              "invalid_user_id",
+              "userId must be a UUID.",
+            ),
+            "401": unauthorized("Sign in to see your quotes."),
+            "403": errorResponse(
+              "A non-admin asked for another user's quotes.",
+              "forbidden",
+              "Only an admin can see another user's quotes.",
+            ),
+            "500": internalError,
+          },
+        },
         post: {
           tags: ["Quotes"],
           operationId: "createQuote",
@@ -361,6 +415,28 @@ export function openApiDocument() {
         },
       },
       "/api/quotes/{id}": {
+        get: {
+          tags: ["Quotes"],
+          operationId: "getQuote",
+          summary: "Get a quote",
+          description:
+            "One of the signed-in user's own quotes, exactly as it was saved. An admin may read anyone's.",
+          parameters: [quoteIdParameter],
+          responses: {
+            "200": {
+              description: "The quote.",
+              headers: privateNoStore,
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/Quote" },
+                },
+              },
+            },
+            "401": unauthorized("Sign in to see this quote."),
+            "404": notFound,
+            "500": internalError,
+          },
+        },
         delete: {
           tags: ["Quotes"],
           operationId: "deleteQuote",
@@ -446,6 +522,7 @@ export function openApiDocument() {
           description: "A saved quote. Money is in US dollars.",
           required: [
             "id",
+            "userId",
             "createdAt",
             "currency",
             "inputs",
@@ -454,6 +531,11 @@ export function openApiDocument() {
           ],
           properties: {
             id: { type: "string", format: "uuid" },
+            userId: {
+              type: "string",
+              format: "uuid",
+              description: "The user who saved it.",
+            },
             createdAt: { type: "string", format: "date-time" },
             currency: { type: "string", const: CURRENCY },
             inputs: {
@@ -487,6 +569,17 @@ export function openApiDocument() {
             },
           },
           example: exampleQuoteResponse,
+        },
+        QuoteList: {
+          type: "object",
+          required: ["quotes"],
+          properties: {
+            quotes: {
+              type: "array",
+              description: "Newest first.",
+              items: { $ref: "#/components/schemas/Quote" },
+            },
+          },
         },
         Offer: {
           type: "object",

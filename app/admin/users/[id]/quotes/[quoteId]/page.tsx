@@ -9,7 +9,7 @@ import { SiteFooter } from "@/components/site-chrome";
 import { requireAdmin } from "@/lib/current-user";
 import { formatQuoteDate } from "@/lib/format";
 import { findUser } from "@/server/admin";
-import { findQuote } from "@/server/quotes";
+import { findQuoteResponse } from "@/server/quotes";
 
 export const metadata: Metadata = {
   title: "Quote",
@@ -43,15 +43,15 @@ async function QuoteDetails({
   params: PageProps<"/admin/users/[id]/quotes/[quoteId]">["params"];
 }) {
   const [{ id, quoteId }] = await Promise.all([params, requireAdmin()]);
-  // The user first: findUser rejects a malformed user id, which findQuote
-  // would otherwise hand to Postgres.
+  // The user first: findUser rejects a malformed user id, which
+  // findQuoteResponse would otherwise hand to Postgres.
   const user = await findUser(id);
 
   if (!user) notFound();
 
   // Scoped to the user in the URL, so a quote id under the wrong user is a
   // 404 rather than a page whose breadcrumb names someone else.
-  const quote = await findQuote(user.id, quoteId);
+  const quote = await findQuoteResponse(user.id, quoteId);
 
   if (!quote) notFound();
 
@@ -68,10 +68,10 @@ async function QuoteDetails({
           Quote · {formatQuoteDate(quote.createdAt)}
         </p>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
-          {quote.fullName}
+          {quote.inputs.fullName}
         </h1>
         <p className="mt-1 text-muted">
-          {quote.address} · {quote.email}
+          {quote.inputs.address} · {quote.inputs.email}
         </p>
       </div>
 

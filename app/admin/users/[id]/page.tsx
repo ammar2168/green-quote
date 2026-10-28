@@ -9,7 +9,7 @@ import { SiteFooter } from "@/components/site-chrome";
 import { requireAdmin } from "@/lib/current-user";
 import { formatQuoteDate } from "@/lib/format";
 import { findUser } from "@/server/admin";
-import { listQuotes } from "@/server/quotes";
+import { listQuoteResponses } from "@/server/quotes";
 
 export const metadata: Metadata = {
   title: "User",
@@ -46,7 +46,7 @@ async function UserDetails({
 
   if (!user) notFound();
 
-  const quotes = await listQuotes(user.id);
+  const quotes = await listQuoteResponses(user.id);
 
   return (
     <div className="animate-rise">
@@ -78,7 +78,7 @@ async function UserDetails({
         <QuotesTable
           quotes={quotes}
           caption={`Quotes for ${user.fullName}`}
-          quoteHref={(quoteId) => `/admin/users/${user.id}/quotes/${quoteId}`}
+          quoteHref={(quote) => `/admin/users/${user.id}/quotes/${quote.id}`}
           empty={
             <>
               <p className="font-semibold">No quotes yet</p>

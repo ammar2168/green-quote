@@ -7,9 +7,9 @@ import { DeleteQuoteButton } from "@/components/delete-quote-button";
 import { NewQuoteLink } from "@/components/new-quote-link";
 import { QuoteBreakdown, QuoteSkeleton } from "@/components/quote-breakdown";
 import { SiteFooter } from "@/components/site-chrome";
-import { requireUser } from "@/lib/current-user";
+import { requireCustomer } from "@/lib/current-user";
 import { formatQuoteDate } from "@/lib/format";
-import { findQuote } from "@/server/quotes";
+import { findQuoteResponse } from "@/server/quotes";
 
 export const metadata: Metadata = {
   title: "Your quote",
@@ -40,8 +40,8 @@ async function QuoteDetails({
 }: {
   params: PageProps<"/quotes/[id]">["params"];
 }) {
-  const [{ id }, user] = await Promise.all([params, requireUser()]);
-  const quote = await findQuote(user.id, id);
+  const [{ id }, user] = await Promise.all([params, requireCustomer()]);
+  const quote = await findQuoteResponse(user.id, id);
 
   if (!quote) notFound();
 
@@ -53,9 +53,9 @@ async function QuoteDetails({
             Quote · {formatQuoteDate(quote.createdAt)}
           </p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">
-            {quote.fullName}
+            {quote.inputs.fullName}
           </h1>
-          <p className="mt-1 text-muted">{quote.address}</p>
+          <p className="mt-1 text-muted">{quote.inputs.address}</p>
         </div>
         <div className="flex flex-wrap items-center gap-4 text-sm">
           <DeleteQuoteButton

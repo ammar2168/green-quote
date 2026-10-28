@@ -2,20 +2,43 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { CurrentUser } from "@/lib/current-user";
 import { logger } from "@/lib/logger";
+import type { QuoteResponse } from "@/lib/quote-response";
 
-import { POST } from "./route";
+import { GET, POST } from "./route";
 
-// What the route saw: the signed-in user it is given, and every row it saved.
+// What the route saw: the signed-in user it is given, every row it saved,
+// and whose quotes it listed.
 const { state } = vi.hoisted(() => ({
   state: {
     user: null as CurrentUser | null,
     inserted: [] as Record<string, unknown>[],
     insertError: null as Error | null,
+    listed: [] as string[],
+    listedAll: [] as { userId?: string }[],
+    quotes: [] as QuoteResponse[],
   },
 }));
 
 vi.mock("@/lib/current-user", () => ({
   getCurrentUser: async () => state.user,
+}));
+
+vi.mock("@/server/admin", () => ({
+  listAllQuoteResponses: async (filters: { userId?: string }) => {
+    state.listedAll.push(filters);
+
+    return state.quotes;
+  },
+}));
+
+// Only the list is faked; `createQuote` runs for real against the fake `db`.
+vi.mock("@/server/quotes", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/server/quotes")>()),
+  listQuoteResponses: async (userId: string) => {
+    state.listed.push(userId);
+
+    return state.quotes;
+  },
 }));
 
 // `db.insert(quotes).values(row).returning()` resolves with the row as saved.
@@ -49,6 +72,10 @@ const USER: CurrentUser = {
   role: "user",
 };
 
+const ADMIN: CurrentUser = { ...USER, id: "admin-1", role: "admin" };
+
+const OTHER_USER_ID = "5f0e7a52-1b8d-4c1e-9a43-2d6f8b0c7e19";
+
 const BODY = {
   fullName: "Ada Lovelace",
   email: "ada@example.com",
@@ -57,6 +84,12 @@ const BODY = {
   systemSizeKw: 5,
   downPayment: 1000,
 };
+
+function get(query = ""): Promise<Response> {
+  return GET(new Request(`http://localhost/api/quotes${query}`), {
+    params: Promise.resolve({}),
+  });
+}
 
 function post(
   body: unknown,
@@ -76,6 +109,101 @@ beforeEach(() => {
   state.user = USER;
   state.inserted = [];
   state.insertError = null;
+  state.listed = [];
+  state.listedAll = [];
+  state.quotes = [];
+});
+
+describe("GET /api/quotes", () => {
+  it("lists the signed-in user's quotes under `quotes`", async () => {
+    state.quotes = [{ id: "quote-2" }, { id: "quote-1" }] as QuoteResponse[];
+
+    const response = await get();
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      quotes: [{ id: "quote-2" }, { id: "quote-1" }],
+    });
+    expect(state.listed).toEqual(["user-1"]);
+  });
+
+  it("answers an empty list rather than a 404 when there are none", async () => {
+    const response = await get();
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ quotes: [] });
+  });
+
+  it("is never kept by a shared cache", async () => {
+    const response = await get();
+
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+  });
+
+  it("lets a user name themselves as the userId", async () => {
+    state.user = { ...USER, id: OTHER_USER_ID };
+
+    const response = await get(`?userId=${OTHER_USER_ID}`);
+
+    expect(response.status).toBe(200);
+    expect(state.listed).toEqual([OTHER_USER_ID]);
+  });
+
+  it("forbids a user from listing someone else's quotes", async () => {
+    const response = await get(`?userId=${OTHER_USER_ID}`);
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({
+      error: {
+        code: "forbidden",
+        message: "Only an admin can see another user's quotes.",
+      },
+    });
+    expect(state.listed).toEqual([]);
+  });
+
+  it("gives an admin every user's quotes", async () => {
+    state.user = ADMIN;
+    state.quotes = [{ id: "quote-2" }, { id: "quote-1" }] as QuoteResponse[];
+
+    const response = await get();
+
+    expect(response.status).toBe(200);
+    expect((await response.json()).quotes).toHaveLength(2);
+    expect(state.listedAll).toEqual([{ userId: undefined }]);
+    expect(state.listed).toEqual([]);
+  });
+
+  it("narrows an admin's list to one user", async () => {
+    state.user = ADMIN;
+
+    const response = await get(`?userId=${OTHER_USER_ID}`);
+
+    expect(response.status).toBe(200);
+    expect(state.listedAll).toEqual([{ userId: OTHER_USER_ID }]);
+  });
+
+  it("rejects a userId that is not a UUID", async () => {
+    state.user = ADMIN;
+
+    const response = await get("?userId=not-a-uuid");
+
+    expect(response.status).toBe(400);
+    expect((await response.json()).error.code).toBe("invalid_user_id");
+    expect(state.listedAll).toEqual([]);
+  });
+
+  it("rejects a signed-out caller without listing anything", async () => {
+    state.user = null;
+
+    const response = await get();
+
+    expect(response.status).toBe(401);
+    expect(await response.json()).toEqual({
+      error: { code: "unauthorized", message: "Sign in to see your quotes." },
+    });
+    expect(state.listed).toEqual([]);
+  });
 });
 
 describe("POST /api/quotes", () => {
@@ -86,6 +214,7 @@ describe("POST /api/quotes", () => {
     expect(response.headers.get("location")).toBe("/api/quotes/quote-1");
     expect(await response.json()).toEqual({
       id: "quote-1",
+      userId: "user-1",
       createdAt: "2026-10-25T12:00:00.000Z",
       currency: "USD",
       inputs: {

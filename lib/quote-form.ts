@@ -1,7 +1,7 @@
 import type { ApiErrorBody } from "@/server/http";
-import type { QuoteResponse } from "@/server/quotes";
 
 import { fieldErrors } from "./field-errors";
+import type { QuoteResponse } from "./quote-response";
 import { quoteRequestSchema } from "./quote-schema";
 
 /**

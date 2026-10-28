@@ -3,44 +3,17 @@ import { z } from "zod";
 
 import { db } from "@/db";
 import { type Quote, quotes } from "@/db/schema";
-import { CURRENCY, fromCents } from "@/lib/money";
-import {
-  type OfferTermYears,
-  type RiskBand,
-  calculateQuote,
-} from "@/lib/quote";
+import { calculateQuote } from "@/lib/quote";
+import { type QuoteResponse, toQuoteResponse } from "@/lib/quote-response";
 import type { QuoteRequest } from "@/lib/quote-schema";
 
 /**
- * A quote as the API returns it: what was asked, what the pricing model
- * derived from it, and the offers. Money is in US dollars here, converted from
- * the stored cents at this one boundary.
+ * The quote reads and writes behind the JSON API. Route handlers and pages
+ * both read through `listQuoteResponses` / `findQuoteResponse`, so the app's
+ * own pages render exactly the JSON an outside client gets from
+ * `GET /api/quotes` and `GET /api/quotes/{id}`. The row-level `findQuote` is
+ * for server code that needs cents and dates (the PDF).
  */
-export type QuoteResponse = {
-  id: string;
-  createdAt: string;
-  currency: typeof CURRENCY;
-  inputs: {
-    fullName: string;
-    email: string;
-    address: string;
-    monthlyConsumptionKwh: number;
-    systemSizeKw: number;
-    downPayment: number;
-  };
-  derived: {
-    systemPrice: number;
-    principal: number;
-    riskBand: RiskBand;
-    apr: number;
-  };
-  offers: {
-    termYears: OfferTermYears;
-    apr: number;
-    principalUsed: number;
-    monthlyPayment: number;
-  }[];
-};
 
 /**
  * Prices a validated request and saves the inputs and the result together in
@@ -60,13 +33,17 @@ export async function createQuote(
   return quote;
 }
 
-/** The signed-in user's quotes, newest first. */
-export async function listQuotes(userId: string): Promise<Quote[]> {
-  return db
+/** The user's quotes as the API returns them, newest first. */
+export async function listQuoteResponses(
+  userId: string,
+): Promise<QuoteResponse[]> {
+  const rows = await db
     .select()
     .from(quotes)
     .where(eq(quotes.userId, userId))
     .orderBy(desc(quotes.createdAt));
+
+  return rows.map(toQuoteResponse);
 }
 
 /**
@@ -89,6 +66,16 @@ export async function findQuote(
   return quote;
 }
 
+/** `findQuote`, as the API returns it. */
+export async function findQuoteResponse(
+  userId: string,
+  quoteId: string,
+): Promise<QuoteResponse | undefined> {
+  const quote = await findQuote(userId, quoteId);
+
+  return quote && toQuoteResponse(quote);
+}
+
 /**
  * Deletes one of the user's own quotes. False when there was nothing of
  * theirs to delete, so — as with `findQuote` — another user's quote id looks
@@ -106,32 +93,4 @@ export async function deleteQuote(
     .returning({ id: quotes.id });
 
   return deleted.length > 0;
-}
-
-export function toQuoteResponse(quote: Quote): QuoteResponse {
-  return {
-    id: quote.id,
-    createdAt: quote.createdAt.toISOString(),
-    currency: CURRENCY,
-    inputs: {
-      fullName: quote.fullName,
-      email: quote.email,
-      address: quote.address,
-      monthlyConsumptionKwh: quote.monthlyConsumptionKwh,
-      systemSizeKw: quote.systemSizeKw,
-      downPayment: fromCents(quote.downPaymentCents),
-    },
-    derived: {
-      systemPrice: fromCents(quote.systemPriceCents),
-      principal: fromCents(quote.principalCents),
-      riskBand: quote.riskBand,
-      apr: quote.apr,
-    },
-    offers: quote.offers.map((offer) => ({
-      termYears: offer.termYears,
-      apr: offer.apr,
-      principalUsed: fromCents(offer.principalUsedCents),
-      monthlyPayment: fromCents(offer.monthlyPaymentCents),
-    })),
-  };
 }

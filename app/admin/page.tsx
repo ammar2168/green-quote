@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 
-/** The users list is the admin's home; this is just a shorter URL for it. */
+import { ADMIN_HOME_PATH } from "@/lib/home-path";
+
+/** Just a shorter URL for the admin's home. */
 export default function AdminPage() {
-  redirect("/admin/users");
+  redirect(ADMIN_HOME_PATH);
 }

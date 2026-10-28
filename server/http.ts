@@ -25,6 +25,12 @@ export type ApiErrorBody = {
   };
 };
 
+/**
+ * For a response carrying one user's data: no shared cache may keep it, and a
+ * browser must not show it again after sign-out.
+ */
+export const PRIVATE_NO_STORE = "private, no-store";
+
 /** Far more than any quote needs; anything bigger is not a real request. */
 const MAX_BODY_BYTES = 16 * 1024;
 

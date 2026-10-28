@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { redirectIfSignedIn } from "./current-user";
+import { redirectIfSignedIn, requireCustomer } from "./current-user";
 
 const { state } = vi.hoisted(() => ({
   state: {
@@ -62,11 +62,34 @@ describe("redirectIfSignedIn", () => {
     expect(redirect).toHaveBeenCalledWith("/quotes/new");
   });
 
-  it("sends a signed-in admin to the users list", async () => {
+  it("sends a signed-in admin to every user's quotes", async () => {
     state.session = { userId: "admin-1" };
     state.rows = [{ id: "admin-1", role: "admin" }];
 
     await expect(redirectIfSignedIn()).rejects.toThrow("NEXT_REDIRECT");
-    expect(redirect).toHaveBeenCalledWith("/admin/users");
+    expect(redirect).toHaveBeenCalledWith("/admin/quotes");
+  });
+});
+
+describe("requireCustomer", () => {
+  it("lets a signed-in user through", async () => {
+    state.session = { userId: "user-1" };
+    state.rows = [{ id: "user-1", role: "user" }];
+
+    expect(await requireCustomer()).toMatchObject({ id: "user-1" });
+    expect(redirect).not.toHaveBeenCalled();
+  });
+
+  it("sends an admin to every user's quotes instead of their own", async () => {
+    state.session = { userId: "admin-1" };
+    state.rows = [{ id: "admin-1", role: "admin" }];
+
+    await expect(requireCustomer()).rejects.toThrow("NEXT_REDIRECT");
+    expect(redirect).toHaveBeenCalledWith("/admin/quotes");
+  });
+
+  it("sends a visitor without a session to sign in", async () => {
+    await expect(requireCustomer()).rejects.toThrow("NEXT_REDIRECT");
+    expect(redirect).toHaveBeenCalledWith("/login");
   });
 });

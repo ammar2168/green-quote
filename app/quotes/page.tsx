@@ -6,9 +6,9 @@ import { DeleteQuoteButton } from "@/components/delete-quote-button";
 import { NewQuoteLink } from "@/components/new-quote-link";
 import { QuotesTable, TableSkeleton } from "@/components/quotes-table";
 import { SiteFooter } from "@/components/site-chrome";
-import { requireUser } from "@/lib/current-user";
+import { requireCustomer } from "@/lib/current-user";
 import { formatQuoteDate } from "@/lib/format";
-import { listQuotes } from "@/server/quotes";
+import { listQuoteResponses } from "@/server/quotes";
 
 export const metadata: Metadata = {
   title: "My quotes",
@@ -48,14 +48,14 @@ export default function MyQuotesPage() {
 }
 
 async function MyQuotes() {
-  const user = await requireUser();
-  const quotes = await listQuotes(user.id);
+  const user = await requireCustomer();
+  const quotes = await listQuoteResponses(user.id);
 
   return (
     <QuotesTable
       quotes={quotes}
       caption="Your quotes"
-      quoteHref={(id) => `/quotes/${id}`}
+      quoteHref={(quote) => `/quotes/${quote.id}`}
       rowActions={(quote) => (
         <DeleteQuoteButton
           quoteId={quote.id}

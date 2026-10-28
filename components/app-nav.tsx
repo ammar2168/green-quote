@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-export type NavSection = "new" | "quotes" | "users";
+export type NavSection = "new" | "quotes" | "all-quotes" | "users";
 
 type NavLink = { section: NavSection; href: string; label: string };
 
@@ -10,6 +10,7 @@ const userLinks: NavLink[] = [
 ];
 
 const adminLinks: NavLink[] = [
+  { section: "all-quotes", href: "/admin/quotes", label: "All quotes" },
   { section: "users", href: "/admin/users", label: "Users" },
 ];
 
